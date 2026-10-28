@@ -11,7 +11,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import (
-    AddConfigEntryEntitiesCallback,
+    AddEntitiesCallback,
     async_get_current_platform,
 )
 from homeassistant.helpers.event import async_call_later
@@ -35,7 +35,7 @@ PENDING_TIMEOUT = 90  # seconds to show the requested state while waiting for th
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: EberspaecherConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create one switch per heater and register the start service."""
     coordinator = entry.runtime_data

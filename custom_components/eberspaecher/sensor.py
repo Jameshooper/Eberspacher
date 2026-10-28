@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
 from .entity import EberspaecherEntity
@@ -18,7 +18,7 @@ from .entity import EberspaecherEntity
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: EberspaecherConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create the status, remaining-time and temperature sensors per heater."""
     coordinator = entry.runtime_data

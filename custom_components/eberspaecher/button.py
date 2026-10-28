@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
 from .api import EberspaecherError
@@ -16,7 +16,7 @@ from .entity import EberspaecherEntity
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: EberspaecherConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create one 'request temperature' button per device."""
     coordinator = entry.runtime_data
