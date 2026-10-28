@@ -9,7 +9,7 @@ time, stop it, and see whether it is running.
 > can change or stop working at any time. Check Eberspächer's terms of use before
 > relying on it. Use at your own risk, and never rely on it for safety-critical heating.
 
-**Status: early (0.1.2). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
+**Status: early (0.1.3). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
 models and multi-heater units may behave differently. Bug reports with the
 Home Assistant log are welcome.
 
@@ -60,7 +60,9 @@ data:
 ## Polling and rate limits
 
 The cloud is polled every 10 minutes, or every 5 minutes while the heater is running,
-plus one re-read 15 seconds after each start or stop. The login token is reused and
+plus one re-read 15 seconds after each start or stop. While the cloud reports the heater
+as starting or stopping (e.g. `ACTIVATION_REQUESTED`) it is re-read every 45 seconds, at
+most 6 times in a row, so the status catches up without waiting for the next poll. The login token is reused and
 refreshed only when the service rejects it. The list of devices is cached for 6 hours.
 There is no documented rate limit, so the integration deliberately stays gentle.
 

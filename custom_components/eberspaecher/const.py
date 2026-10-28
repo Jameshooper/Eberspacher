@@ -17,6 +17,13 @@ CALLS_CACHE_SECONDS = 6 * 60 * 60
 REFRESH_DELAY_COMMAND = 15
 REFRESH_DELAY_TEMPERATURE = 30
 
+# While the cloud reports a transitional state (e.g. ACTIVATION_REQUESTED), re-read
+# every SETTLE_DELAY seconds, at most SETTLE_MAX_READS times in a row, so the
+# status catches up without waiting for the next regular poll.
+SETTLE_DELAY = 45
+SETTLE_MAX_READS = 6
+TRANSITIONAL_SUFFIX = "_REQUESTED"
+
 MODE_HEATING = "HEATING"
 MODE_VENTILATION = "VENTILATION"
 MODE_OFF = "OFF"

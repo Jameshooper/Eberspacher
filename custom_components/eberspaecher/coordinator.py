@@ -25,7 +25,10 @@ from .const import (
     DEFAULT_RUNTIME,
     DOMAIN,
     MODE_HEATING,
+    SETTLE_DELAY,
+    SETTLE_MAX_READS,
     STATE_ON,
+    TRANSITIONAL_SUFFIX,
     UPDATE_INTERVAL_ACTIVE,
     UPDATE_INTERVAL_IDLE,
 )
@@ -63,6 +66,8 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self._cancel_refresh: CALLBACK_TYPE | None = None
         # Run time the "Heating" switch uses, per (imei, heater address).
         self.runtimes: dict[tuple[str, int], int] = {}
+        # Consecutive follow-up reads made while a heater was in a transitional state.
+        self.settle_reads = 0
 
     async def _async_update_data(self) -> dict[str, EberspaecherDevice]:
         try:
@@ -83,13 +88,20 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         except EberspaecherConnectionError as err:
             raise UpdateFailed(str(err)) from err
 
-        # Poll faster only while something is actually running.
-        active = any(
-            heater.get("state") == STATE_ON
-            for device in result.values()
-            for heater in device.heaters.values()
+        heaters = [h for device in result.values() for h in device.heaters.values()]
+        transitional = any(
+            str(h.get("heaterState") or "").endswith(TRANSITIONAL_SUFFIX) for h in heaters
         )
+        # Poll faster only while something is running or about to.
+        active = transitional or any(h.get("state") == STATE_ON for h in heaters)
         self.update_interval = UPDATE_INTERVAL_ACTIVE if active else UPDATE_INTERVAL_IDLE
+
+        # The heater is starting or stopping: re-read soon, a limited number of times.
+        if transitional and self.settle_reads < SETTLE_MAX_READS:
+            self.settle_reads += 1
+            self.async_schedule_refresh(SETTLE_DELAY)
+        elif not transitional:
+            self.settle_reads = 0
         return result
 
     def _capabilities(self, imei: str, address: int) -> list[dict[str, Any]]:

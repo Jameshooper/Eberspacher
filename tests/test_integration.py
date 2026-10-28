@@ -283,3 +283,65 @@ async def test_reload(hass, entry, cloud):
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
+
+
+# --- settling re-reads while the cloud reports a transitional state --------
+
+def heater_reads(mock):
+    return len(calls_to(mock, "GET", "/heaters"))
+
+
+async def tick(hass, freezer, seconds):
+    freezer.tick(timedelta(seconds=seconds))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+
+async def test_transitional_state_is_re_read_until_settled(hass, entry, cloud, freezer):
+    await setup(hass, entry)
+    set_heater_reply(cloud, heater(state="ON", heaterState="ACTIVATION_REQUESTED"))
+    await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
+    await tick(hass, freezer, 16)            # post-command read -> still requested
+    assert heater_reads(cloud) == 1
+    await tick(hass, freezer, 46)            # follow-up read
+    assert heater_reads(cloud) == 2
+    set_heater_reply(cloud, heater(state="ON", heaterState="ON"))
+    await tick(hass, freezer, 46)            # settles
+    assert heater_reads(cloud) == 1          # (counter reset by set_heater_reply)
+    await tick(hass, freezer, 46)            # no further follow-ups once settled
+    assert heater_reads(cloud) == 1
+    assert hass.states.get(SWITCH).state == "on"
+
+
+async def test_transitional_re_reads_are_capped(hass, entry, aioclient_mock, freezer):
+    set_heater_reply(aioclient_mock, heater(heaterState="ACTIVATION_REQUESTED"))
+    await setup(hass, entry)
+    start = heater_reads(aioclient_mock)
+    for _ in range(10):
+        await tick(hass, freezer, 46)
+    # 6 follow-ups max; the next read is the regular 5-minute poll, not before.
+    assert heater_reads(aioclient_mock) - start == 6
+    await tick(hass, freezer, 300)
+    assert heater_reads(aioclient_mock) - start == 7
+
+
+async def test_new_command_resets_the_cap(hass, entry, aioclient_mock, freezer):
+    set_heater_reply(aioclient_mock, heater(heaterState="DEACTIVATION_REQUESTED"))
+    await setup(hass, entry)
+    for _ in range(8):
+        await tick(hass, freezer, 46)
+    assert entry.runtime_data.settle_reads == 6
+    await hass.services.async_call("switch", "turn_off", {"entity_id": SWITCH}, blocking=True)
+    assert entry.runtime_data.settle_reads == 0
+    before = heater_reads(aioclient_mock)
+    await tick(hass, freezer, 16)
+    await tick(hass, freezer, 46)
+    assert heater_reads(aioclient_mock) - before == 2
+
+
+async def test_idle_heater_has_no_follow_up_reads(hass, entry, cloud, freezer):
+    await setup(hass, entry)
+    start = heater_reads(cloud)
+    await tick(hass, freezer, 46 * 3)
+    assert heater_reads(cloud) == start
+    assert entry.runtime_data.update_interval == timedelta(minutes=10)

@@ -133,6 +133,7 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
             self.hass, PENDING_TIMEOUT, self._pending_expired
         )
         self.async_write_ha_state()
+        self.coordinator.settle_reads = 0  # a new command gets fresh follow-up reads
         self.coordinator.async_schedule_refresh(REFRESH_DELAY_COMMAND)
 
     async def async_start_heating(
