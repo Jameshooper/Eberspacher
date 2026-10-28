@@ -95,6 +95,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
                 imei = str(call["imei"])
                 name = call.get("name") or call.get("description") or f"EasyStart {imei[-4:]}"
                 heaters = await self.api.async_get_heaters(imei)
+                _LOGGER.debug("Raw heaters for %s...%s: %s", imei[:4], imei[-4:], heaters)
                 result[imei] = EberspaecherDevice(
                     imei=imei, name=str(name), heaters=_index_heaters(imei, heaters)
                 )
@@ -124,6 +125,11 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
                 h.get("lastMeasuredTemperature") is None
                 for device in result.values()
                 for h in device.heaters.values()
+            )
+            _LOGGER.debug(
+                "Temperature retry: reads_remaining=%d, temp_missing=%s",
+                self.temperature_reads,
+                temp_missing,
             )
             if temp_missing:
                 self.temperature_reads -= 1
@@ -165,7 +171,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
 
         async def _refresh(_now: Any) -> None:
             self._cancel_refresh = None
-            await self.async_request_refresh()
+            await self.async_refresh()
 
         self._cancel_refresh = async_call_later(self.hass, delay, _refresh)
 
