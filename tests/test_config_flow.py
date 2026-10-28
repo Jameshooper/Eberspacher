@@ -64,6 +64,10 @@ async def test_reauth_updates_password(hass, cloud, entry):
     assert r["type"] is FlowResultType.ABORT
     assert r["reason"] == "reauth_successful"
     assert entry.data["password"] == "new"
+    # async_update_reload_and_abort schedules a reload as a background task; drain it
+    # here so the new coordinator is fully set up before HA teardown fires the stop
+    # event — otherwise the coordinator misses the event and its timer lingers.
+    await hass.async_block_till_done()
 
 
 async def test_reauth_wrong_password_shows_error(hass, aioclient_mock, entry):
