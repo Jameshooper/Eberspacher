@@ -95,6 +95,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
                 imei = str(call["imei"])
                 name = call.get("name") or call.get("description") or f"EasyStart {imei[-4:]}"
                 heaters = await self.api.async_get_heaters(imei)
+                _LOGGER.debug("Raw heaters for %s...%s: %s", imei[:4], imei[-4:], heaters)
                 result[imei] = EberspaecherDevice(
                     imei=imei, name=str(name), heaters=_index_heaters(imei, heaters)
                 )
