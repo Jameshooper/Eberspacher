@@ -9,7 +9,7 @@ from homeassistant.components.number import (
 )
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
 from .coordinator import EberspaecherCoordinator
@@ -19,7 +19,7 @@ from .entity import EberspaecherEntity
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: EberspaecherConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create one run-time number per heater."""
     coordinator = entry.runtime_data

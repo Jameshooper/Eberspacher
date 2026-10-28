@@ -45,4 +45,5 @@ async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigE
 
 async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> bool:
     """Unload a config entry."""
+    await entry.runtime_data.async_shutdown()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
