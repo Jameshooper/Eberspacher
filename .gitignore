@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+secrets.yaml
+
+# Personal working file from the original YAML setup (contains a device IMEI)
+eberspaecher_package.yaml

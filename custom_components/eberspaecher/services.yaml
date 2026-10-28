@@ -1,0 +1,23 @@
+start_heating:
+  target:
+    entity:
+      integration: eberspaecher
+      domain: switch
+  fields:
+    runtime:
+      required: false
+      example: 40
+      selector:
+        number:
+          min: 1
+          max: 600
+          unit_of_measurement: min
+          mode: box
+    mode:
+      required: false
+      default: HEATING
+      selector:
+        select:
+          options:
+            - HEATING
+            - VENTILATION

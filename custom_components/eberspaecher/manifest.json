@@ -1,0 +1,11 @@
+{
+  "domain": "eberspaecher",
+  "name": "Eberspächer EasyStart Web",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/OWNER/ha-eberspaecher",
+  "issue_tracker": "https://github.com/OWNER/ha-eberspaecher/issues",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Eberspächer EasyStart Web",
+        "description": "Sign in with the account you use at myeberspaecher.com. This is an unofficial integration.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The saved login for {email} no longer works. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach myeberspaecher.com",
+      "invalid_auth": "Wrong email or password",
+      "no_devices": "The account has no EasyStart Web devices",
+      "unknown": "Unexpected error, see the Home Assistant log"
+    },
+    "abort": {
+      "already_configured": "This account is already set up",
+      "reauth_successful": "Password updated"
+    }
+  },
+  "services": {
+    "start_heating": {
+      "name": "Start heating",
+      "description": "Start the heater for a set time.",
+      "fields": {
+        "runtime": {
+          "name": "Run time",
+          "description": "Minutes to run. Defaults to the Run time number."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Heating or ventilation."
+        }
+      }
+    }
+  }
+}
