@@ -43,5 +43,28 @@
         }
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling",
+        "description": "How often to check the heater status while nothing is running. While it runs, and right after any start or stop from Home Assistant, it is checked regardless. With Off, starts made from the EasyStart app or website only show up after the next command from Home Assistant or a restart.",
+        "data": {
+          "idle_interval": "Status check when idle"
+        }
+      }
+    }
+  },
+  "selector": {
+    "idle_interval": {
+      "options": {
+        "0": "Off",
+        "5": "Every 5 minutes",
+        "10": "Every 10 minutes (default)",
+        "15": "Every 15 minutes",
+        "30": "Every 30 minutes",
+        "60": "Every hour"
+      }
+    }
   }
 }

@@ -8,16 +8,32 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .api import (
     EberspaecherApi,
     EberspaecherAuthError,
     EberspaecherConnectionError,
 )
-from .const import DOMAIN
+from .const import (
+    CONF_IDLE_INTERVAL,
+    DEFAULT_IDLE_INTERVAL,
+    DOMAIN,
+    IDLE_INTERVAL_CHOICES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +47,12 @@ class EberspaecherConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the setup UI."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow (polling interval)."""
+        return EberspaecherOptionsFlow()
 
     async def _async_validate(self, email: str, password: str) -> str | None:
         """Return an error key, or None when the credentials work."""
@@ -98,3 +120,29 @@ class EberspaecherConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={"email": entry.data[CONF_EMAIL]},
             errors=errors,
         )
+
+
+class EberspaecherOptionsFlow(OptionsFlow):
+    """Let the user choose how often the status is checked while idle."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(
+                data={CONF_IDLE_INTERVAL: int(user_input[CONF_IDLE_INTERVAL])}
+            )
+
+        current = self.config_entry.options.get(CONF_IDLE_INTERVAL, DEFAULT_IDLE_INTERVAL)
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_IDLE_INTERVAL, default=str(current)): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[str(m) for m in IDLE_INTERVAL_CHOICES],
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_IDLE_INTERVAL,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

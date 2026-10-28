@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timedelta
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -20,6 +21,8 @@ from .api import (
 )
 from .const import (
     CALLS_CACHE_SECONDS,
+    CONF_IDLE_INTERVAL,
+    DEFAULT_IDLE_INTERVAL,
     DEFAULT_MAX_RUNTIME,
     DEFAULT_MIN_RUNTIME,
     DEFAULT_RUNTIME,
@@ -34,6 +37,15 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def idle_interval(entry: ConfigEntry) -> timedelta | None:
+    """The idle polling interval chosen in the options (None = off)."""
+    try:
+        minutes = int(entry.options.get(CONF_IDLE_INTERVAL, DEFAULT_IDLE_INTERVAL))
+    except (TypeError, ValueError):
+        return UPDATE_INTERVAL_IDLE
+    return timedelta(minutes=minutes) if minutes > 0 else None
 
 
 @dataclass
@@ -53,12 +65,13 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, api: EberspaecherApi
     ) -> None:
+        self.idle_interval = idle_interval(entry)
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL_IDLE,
+            update_interval=self.idle_interval,
         )
         self.api = api
         self._calls: list[dict[str, Any]] = []
@@ -94,7 +107,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         )
         # Poll faster only while something is running or about to.
         active = transitional or any(h.get("state") == STATE_ON for h in heaters)
-        self.update_interval = UPDATE_INTERVAL_ACTIVE if active else UPDATE_INTERVAL_IDLE
+        self.update_interval = UPDATE_INTERVAL_ACTIVE if active else self.idle_interval
 
         # The heater is starting or stopping: re-read soon, a limited number of times.
         if transitional and self.settle_reads < SETTLE_MAX_READS:

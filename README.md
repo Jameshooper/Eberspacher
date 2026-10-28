@@ -9,7 +9,7 @@ time, stop it, and see whether it is running.
 > can change or stop working at any time. Check Eberspächer's terms of use before
 > relying on it. Use at your own risk, and never rely on it for safety-critical heating.
 
-**Status: early (0.1.3). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
+**Status: early (0.1.4). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
 models and multi-heater units may behave differently. Bug reports with the
 Home Assistant log are welcome.
 
@@ -59,12 +59,22 @@ data:
 
 ## Polling and rate limits
 
-The cloud is polled every 10 minutes, or every 5 minutes while the heater is running,
-plus one re-read 15 seconds after each start or stop. While the cloud reports the heater
-as starting or stopping (e.g. `ACTIVATION_REQUESTED`) it is re-read every 45 seconds, at
-most 6 times in a row, so the status catches up without waiting for the next poll. The login token is reused and
-refreshed only when the service rejects it. The list of devices is cached for 6 hours.
-There is no documented rate limit, so the integration deliberately stays gentle.
+| When | How often |
+|---|---|
+| Nothing running | Every 10 minutes by default, or your choice (see below) |
+| Heater running | Every 5 minutes |
+| After a start or stop from Home Assistant | 15 seconds later |
+| Cloud says starting or stopping (e.g. `ACTIVATION_REQUESTED`) | Every 45 seconds, at most 6 times in a row |
+
+To change the idle check, go to **Settings → Devices & services → Eberspächer EasyStart
+Web → Configure** and pick every 5, 10, 15, 30 or 60 minutes, or **Off**. With Off there
+is no background polling while idle, so a start made from the EasyStart app, website or
+the heater's own timer only shows up after the next command from Home Assistant, a
+restart, or a manual `homeassistant.update_entity`.
+
+The login token is reused and refreshed only when the service rejects it. The list of
+devices is cached for 6 hours. There is no documented rate limit, so the integration
+deliberately stays gentle.
 
 ## Example: be warm at 08:10 on weekdays, depending on outside temperature
 

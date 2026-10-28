@@ -345,3 +345,91 @@ async def test_idle_heater_has_no_follow_up_reads(hass, entry, cloud, freezer):
     await tick(hass, freezer, 46 * 3)
     assert heater_reads(cloud) == start
     assert entry.runtime_data.update_interval == timedelta(minutes=10)
+
+
+# --- idle polling option ----------------------------------------------------
+
+async def set_idle(hass, entry, value):
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    assert r["step_id"] == "init"
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], {"idle_interval": value}
+    )
+    await hass.async_block_till_done()
+    return r
+
+
+async def test_options_form_defaults_to_10(hass, entry, cloud):
+    await setup(hass, entry)
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    key = next(iter(r["data_schema"].schema))
+    assert key.default() == "10"
+
+
+@pytest.mark.parametrize(("choice", "minutes"), [("5", 5), ("30", 30), ("60", 60)])
+async def test_idle_interval_option_applies(hass, entry, cloud, freezer, choice, minutes):
+    await setup(hass, entry)
+    r = await set_idle(hass, entry, choice)
+    assert r["type"] == "create_entry"
+    assert entry.options == {"idle_interval": minutes}
+    coordinator = entry.runtime_data
+    assert coordinator.update_interval == timedelta(minutes=minutes)
+    start = heater_reads(cloud)
+    await tick(hass, freezer, minutes * 60 + 1)
+    assert heater_reads(cloud) == start + 1
+
+
+async def test_idle_polling_off(hass, entry, cloud, freezer):
+    await setup(hass, entry)
+    await set_idle(hass, entry, "0")
+    assert entry.runtime_data.update_interval is None
+    start = heater_reads(cloud)
+    await tick(hass, freezer, 6 * 60 * 60)       # six hours: no background polls
+    assert heater_reads(cloud) == start
+    assert hass.states.get(SWITCH).state == "off"
+
+
+async def test_idle_off_still_refreshes_after_command_and_while_running(hass, entry, cloud, freezer):
+    await setup(hass, entry)
+    await set_idle(hass, entry, "0")
+    set_heater_reply(cloud, heater(state="ON", heaterState="ON",
+                                   currentOperation={"remainingRuntime": 30}))
+    await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
+    await tick(hass, freezer, 16)
+    assert heater_reads(cloud) == 1                    # post-command read
+    assert entry.runtime_data.update_interval == timedelta(minutes=5)
+    await tick(hass, freezer, 301)
+    assert heater_reads(cloud) == 2                    # running: 5-minute polling
+    set_heater_reply(cloud, heater())                  # run finished
+    await tick(hass, freezer, 301)
+    assert heater_reads(cloud) == 1
+    assert entry.runtime_data.update_interval is None  # back to no idle polling
+    await tick(hass, freezer, 3600)
+    assert heater_reads(cloud) == 1
+
+
+async def test_idle_option_survives_restart(hass, aioclient_mock, cloud):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from .conftest import EMAIL, PASSWORD
+    e = MockConfigEntry(domain=DOMAIN, unique_id=EMAIL, data={"email": EMAIL, "password": PASSWORD},
+                        options={"idle_interval": 0})
+    e.add_to_hass(hass)
+    await setup(hass, e)
+    assert e.runtime_data.update_interval is None
+
+
+async def test_bad_stored_option_falls_back(hass, cloud):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from .conftest import EMAIL, PASSWORD
+    e = MockConfigEntry(domain=DOMAIN, unique_id=EMAIL, data={"email": EMAIL, "password": PASSWORD},
+                        options={"idle_interval": "junk"})
+    e.add_to_hass(hass)
+    await setup(hass, e)
+    assert e.runtime_data.update_interval == timedelta(minutes=10)
+
+
+async def test_options_reject_unknown_choice(hass, entry, cloud):
+    await setup(hass, entry)
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    with pytest.raises(Exception):
+        await hass.config_entries.options.async_configure(r["flow_id"], {"idle_interval": "7"})

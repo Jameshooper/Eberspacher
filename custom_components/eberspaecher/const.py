@@ -8,6 +8,12 @@ DOMAIN = "eberspaecher"
 
 # The cloud is polled gently: slowly when idle, a bit faster while a run is active.
 UPDATE_INTERVAL_IDLE = timedelta(minutes=10)
+
+# Options: how often to check the status while nothing is running. 0 = off (no
+# background polling while idle; commands, running heaters and restarts still refresh).
+CONF_IDLE_INTERVAL = "idle_interval"
+DEFAULT_IDLE_INTERVAL = 10
+IDLE_INTERVAL_CHOICES = [0, 5, 10, 15, 30, 60]
 UPDATE_INTERVAL_ACTIVE = timedelta(minutes=5)
 
 # How long the list of registered devices is cached between full lookups.
