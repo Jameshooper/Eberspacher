@@ -81,6 +81,8 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.runtimes: dict[tuple[str, int], int] = {}
         # Consecutive follow-up reads made while a heater was in a transitional state.
         self.settle_reads = 0
+        # Follow-up reads remaining after a temperature request (counts down to 0).
+        self.temperature_reads = 0
 
     async def _async_update_data(self) -> dict[str, EberspaecherDevice]:
         try:
@@ -115,6 +117,20 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
             self.async_schedule_refresh(SETTLE_DELAY)
         elif not transitional:
             self.settle_reads = 0
+
+        # After a temperature request, keep polling until a value appears or retries run out.
+        if self.temperature_reads > 0:
+            temp_missing = any(
+                h.get("lastMeasuredTemperature") is None
+                for device in result.values()
+                for h in device.heaters.values()
+            )
+            if temp_missing:
+                self.temperature_reads -= 1
+                self.async_schedule_refresh(SETTLE_DELAY)
+            else:
+                self.temperature_reads = 0
+
         return result
 
     def _capabilities(self, imei: str, address: int) -> list[dict[str, Any]]:
