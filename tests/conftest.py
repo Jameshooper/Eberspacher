@@ -36,6 +36,30 @@ def heater(**over):
     return h
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _prewarm_aiohttp_session():
+    """Create and close an aiohttp connector once before all tests.
+
+    On Python 3.12 with the aiohttp CP312 wheel, the first connector close
+    while an event loop is running spawns a daemon thread named
+    _run_safe_shutdown_loop.  By triggering this in a session-scoped fixture
+    we ensure the thread exists before any test's ``hass`` fixture records its
+    thread baseline, so it is never counted as a new thread.
+    """
+    import asyncio
+    import aiohttp
+
+    async def _prewarm():
+        connector = aiohttp.TCPConnector()
+        await connector.close()
+
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(_prewarm())
+    finally:
+        loop.close()
+
+
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     yield
