@@ -8,12 +8,13 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import (
     AddConfigEntryEntitiesCallback,
     async_get_current_platform,
 )
+from homeassistant.helpers.event import async_call_later
 
 from . import EberspaecherConfigEntry
 from .api import EberspaecherError
@@ -24,6 +25,7 @@ from .const import (
     REFRESH_DELAY_COMMAND,
     STATE_ON,
 )
+from .coordinator import EberspaecherCoordinator
 from .entity import EberspaecherEntity
 
 SERVICE_START = "start_heating"
@@ -61,13 +63,35 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
     _attr_name = "Heating"
     _attr_icon = "mdi:car-defrost-front"
 
-    def __init__(self, coordinator, imei: str, address: int) -> None:
+    def __init__(
+        self, coordinator: EberspaecherCoordinator, imei: str, address: int
+    ) -> None:
         super().__init__(coordinator, imei, address, "heating")
+        self._heater_address = address
         # The cloud takes a while to report a new state, so after a command the
         # switch shows the requested state until the cloud confirms it (or a timeout),
         # instead of flipping back to the old state and then forward again.
         self._pending: bool | None = None
         self._pending_until = 0.0
+        self._cancel_pending: CALLBACK_TYPE | None = None
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._clear_pending_timer()
+        await super().async_will_remove_from_hass()
+
+    def _clear_pending_timer(self) -> None:
+        if self._cancel_pending:
+            self._cancel_pending()
+            self._cancel_pending = None
+
+    @callback
+    def _pending_expired(self, _now: Any) -> None:
+        """The cloud never confirmed: show its real state and re-read it."""
+        self._cancel_pending = None
+        if self._pending is not None:
+            self._pending = None
+            self.async_write_ha_state()
+            self.hass.async_create_task(self.coordinator.async_request_refresh())
 
     @property
     def is_on(self) -> bool:
@@ -81,6 +105,7 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
             confirmed = (self.heater.get("state") == STATE_ON) == self._pending
             if confirmed or time.monotonic() >= self._pending_until:
                 self._pending = None
+                self._clear_pending_timer()
         super()._handle_coordinator_update()
 
     @property
@@ -97,12 +122,16 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
     async def _async_send(self, mode: str, runtime: int | None) -> None:
         try:
             await self.coordinator.api.async_set_heater(
-                self._imei, self._address, mode, runtime
+                self._imei, self._heater_address, mode, runtime
             )
         except EberspaecherError as err:
             raise HomeAssistantError(f"Could not send the command: {err}") from err
         self._pending = mode != MODE_OFF
         self._pending_until = time.monotonic() + PENDING_TIMEOUT
+        self._clear_pending_timer()
+        self._cancel_pending = async_call_later(
+            self.hass, PENDING_TIMEOUT, self._pending_expired
+        )
         self.async_write_ha_state()
         self.coordinator.async_schedule_refresh(REFRESH_DELAY_COMMAND)
 
@@ -110,11 +139,19 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
         self, runtime: int | None = None, mode: str = MODE_HEATING
     ) -> None:
         """Start the heater for a given time (defaults to the Run time number)."""
+        low, high, default = self.coordinator.runtime_limits(
+            self._imei, self._heater_address
+        )
         if runtime is None:
             runtime = self.coordinator.runtimes.get(
-                (self._imei, self._address),
-                self.coordinator.runtime_limits(self._imei, self._address)[2],
+                (self._imei, self._heater_address), default
             )
+        elif not low <= runtime <= high:
+            raise ServiceValidationError(
+                f"Run time must be between {low} and {high} minutes for this heater"
+            )
+        if not self.coordinator.supports_mode(self._imei, self._heater_address, mode):
+            raise ServiceValidationError(f"This heater does not support {mode}")
         await self._async_send(mode, runtime)
 
     async def async_turn_on(self, **kwargs: Any) -> None:

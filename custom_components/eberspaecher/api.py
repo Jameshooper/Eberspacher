@@ -64,8 +64,13 @@ class EberspaecherApi:
                 data = await resp.json(content_type=None)
         except EberspaecherError:
             raise
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             raise EberspaecherConnectionError(f"Login request failed: {err}") from err
+        except ValueError as err:
+            # A 200 with a non-JSON body, e.g. a maintenance page.
+            raise EberspaecherConnectionError(
+                "Login response was not valid JSON"
+            ) from err
 
         token = data.get("token") if isinstance(data, dict) else None
         if not token:
@@ -86,9 +91,15 @@ class EberspaecherApi:
         payload: Any = None,
         retry: bool = True,
     ) -> Any:
-        """Send an authenticated request, logging in again once on a 401/403."""
+        """Send an authenticated request, logging in again once on a 401/403.
+
+        A 401 that survives a fresh login means the credentials are bad (reauth).
+        A 403 that survives a fresh login means the login works but this resource
+        is not allowed, so it is reported as a connection error, not a bad password.
+        """
         await self._async_ensure_token()
-        headers = {HEADER_TOKEN: self._token or "", "Accept": "application/json"}
+        token = self._token
+        headers = {HEADER_TOKEN: token or "", "Accept": "application/json"}
         try:
             async with self._session.request(
                 method,
@@ -99,17 +110,23 @@ class EberspaecherApi:
                 timeout=TIMEOUT,
             ) as resp:
                 if resp.status in (401, 403):
-                    self._token = None
+                    # Only drop the token if no other request has replaced it yet.
+                    if self._token == token:
+                        self._token = None
                     if retry:
                         return await self._async_request(
                             method, path, params=params, payload=payload, retry=False
+                        )
+                    if resp.status == 403:
+                        raise EberspaecherConnectionError(
+                            f"{method} {path} was refused (403)"
                         )
                     raise EberspaecherAuthError("Session was rejected")
                 resp.raise_for_status()
                 text = await resp.text()
         except EberspaecherError:
             raise
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             raise EberspaecherConnectionError(
                 f"{method} {path} failed: {err}"
             ) from err
@@ -128,14 +145,12 @@ class EberspaecherApi:
             "/calls",
             params={"fetchHeater": "NO", "email": "CURRENT", "page": 0, "size": 50},
         )
-        if isinstance(data, dict):
-            data = data.get("content") or data.get("items") or []
-        return [item for item in (data or []) if isinstance(item, dict) and item.get("imei")]
+        return [item for item in _as_list(data) if item.get("imei")]
 
     async def async_get_heaters(self, imei: str) -> list[dict[str, Any]]:
         """Return the heaters of one device with their current state."""
         data = await self._async_request("GET", f"/calls/{imei}/heaters")
-        return [item for item in (data or []) if isinstance(item, dict)]
+        return _as_list(data)
 
     async def async_set_heater(
         self, imei: str, address: int, mode: str, runtime: int | None = None
@@ -157,3 +172,14 @@ class EberspaecherApi:
     async def async_request_temperature(self, imei: str) -> None:
         """Ask the device to measure and report its temperature."""
         await self._async_request("POST", f"/calls/{imei}/temperature", payload={})
+
+
+def _as_list(data: Any) -> list[dict[str, Any]]:
+    """Accept a bare list or a paged {"content"/"items": [...]} reply."""
+    if isinstance(data, dict):
+        data = data.get("content") or data.get("items") or []
+    if not isinstance(data, list):
+        if data:
+            _LOGGER.warning("Unexpected reply from EasyStart Web: %s", type(data).__name__)
+        return []
+    return [item for item in data if isinstance(item, dict)]

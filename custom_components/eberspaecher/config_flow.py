@@ -42,7 +42,7 @@ class EberspaecherConfigFlow(ConfigFlow, domain=DOMAIN):
             return "invalid_auth"
         except EberspaecherConnectionError:
             return "cannot_connect"
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Unexpected error validating Eberspächer credentials")
             return "unknown"
         if not calls:

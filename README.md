@@ -9,7 +9,7 @@ time, stop it, and see whether it is running.
 > can change or stop working at any time. Check Eberspächer's terms of use before
 > relying on it. Use at your own risk, and never rely on it for safety-critical heating.
 
-**Status: early (0.1.0). Written against one device (a single water heater).** Other
+**Status: early (0.1.2). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
 models and multi-heater units may behave differently. Bug reports with the
 Home Assistant log are welcome.
 
@@ -45,7 +45,8 @@ The Temperature sensor stays empty until you press it.
 
 ### Service `eberspaecher.start_heating`
 
-Start a heater for a chosen time without changing the Run time number.
+Start a heater for a chosen time without changing the Run time number. The run time must be
+within the heater's own limits, and the mode must be one the heater supports.
 
 ```yaml
 action: eberspaecher.start_heating

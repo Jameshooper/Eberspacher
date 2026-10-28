@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import EberspaecherConfigEntry
+from .coordinator import EberspaecherCoordinator
 from .entity import EberspaecherEntity
 
 
@@ -39,8 +40,11 @@ class EberspaecherRunTime(EberspaecherEntity, RestoreNumber):
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_native_step = 1
 
-    def __init__(self, coordinator, imei: str, address: int) -> None:
+    def __init__(
+        self, coordinator: EberspaecherCoordinator, imei: str, address: int
+    ) -> None:
         super().__init__(coordinator, imei, address, "run_time")
+        self._key = (imei, address)
         low, high, default = coordinator.runtime_limits(imei, address)
         self._attr_native_min_value = low
         self._attr_native_max_value = high
@@ -55,9 +59,9 @@ class EberspaecherRunTime(EberspaecherEntity, RestoreNumber):
             value = int(last.native_value)
             if self._attr_native_min_value <= value <= self._attr_native_max_value:
                 self._attr_native_value = value
-                self.coordinator.runtimes[(self._imei, self._address)] = value
+                self.coordinator.runtimes[self._key] = value
 
     async def async_set_native_value(self, value: float) -> None:
         self._attr_native_value = int(value)
-        self.coordinator.runtimes[(self._imei, self._address)] = int(value)
+        self.coordinator.runtimes[self._key] = int(value)
         self.async_write_ha_state()

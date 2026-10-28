@@ -78,4 +78,9 @@ class EberspaecherTemperatureSensor(EberspaecherEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         value = self.heater.get("lastMeasuredTemperature")
-        return float(value) if isinstance(value, (int, float)) else None
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None

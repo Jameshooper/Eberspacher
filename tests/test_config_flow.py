@@ -33,7 +33,7 @@ async def test_user_flow_success_trims_email(hass, cloud):
     [
         (lambda m: m.post(f"{BASE_URL}/authenticate", status=401), "invalid_auth"),
         (lambda m: m.post(f"{BASE_URL}/authenticate", status=503), "cannot_connect"),
-        (lambda m: m.post(f"{BASE_URL}/authenticate", text="<html>"), "unknown"),
+        (lambda m: m.post(f"{BASE_URL}/authenticate", text="<html>"), "cannot_connect"),
         (lambda m: (m.post(f"{BASE_URL}/authenticate", json={"token": "t"}),
                     m.get(f"{BASE_URL}/calls", json=[])), "no_devices"),
     ],

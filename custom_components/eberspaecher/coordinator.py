@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_MIN_RUNTIME,
     DEFAULT_RUNTIME,
     DOMAIN,
+    MODE_HEATING,
     STATE_ON,
     UPDATE_INTERVAL_ACTIVE,
     UPDATE_INTERVAL_IDLE,
@@ -75,12 +76,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
                 name = call.get("name") or call.get("description") or f"EasyStart {imei[-4:]}"
                 heaters = await self.api.async_get_heaters(imei)
                 result[imei] = EberspaecherDevice(
-                    imei=imei,
-                    name=str(name),
-                    heaters={
-                        int(h.get("address", idx + 1)): h
-                        for idx, h in enumerate(heaters)
-                    },
+                    imei=imei, name=str(name), heaters=_index_heaters(imei, heaters)
                 )
         except EberspaecherAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
@@ -96,18 +92,29 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.update_interval = UPDATE_INTERVAL_ACTIVE if active else UPDATE_INTERVAL_IDLE
         return result
 
+    def _capabilities(self, imei: str, address: int) -> list[dict[str, Any]]:
+        device = (self.data or {}).get(imei)
+        heater = device.heaters.get(address, {}) if device else {}
+        caps = heater.get("capabilities")
+        return [c for c in caps if isinstance(c, dict)] if isinstance(caps, list) else []
+
     def runtime_limits(self, imei: str, address: int) -> tuple[int, int, int]:
         """Return (min, max, default) run time in minutes for a heater."""
-        heater = (self.data or {}).get(imei, EberspaecherDevice(imei, "")).heaters.get(address, {})
-        for cap in heater.get("capabilities") or []:
-            if cap.get("operationMode") == "HEATING" and cap.get("targetRuntime"):
-                tr = cap["targetRuntime"]
-                return (
-                    int(tr.get("minimumValue") or DEFAULT_MIN_RUNTIME),
-                    int(tr.get("maximumValue") or DEFAULT_MAX_RUNTIME),
-                    int(tr.get("defaultValue") or DEFAULT_RUNTIME),
-                )
+        for cap in self._capabilities(imei, address):
+            tr = cap.get("targetRuntime")
+            if cap.get("operationMode") == MODE_HEATING and isinstance(tr, dict):
+                low = _to_int(tr.get("minimumValue"), DEFAULT_MIN_RUNTIME)
+                high = _to_int(tr.get("maximumValue"), DEFAULT_MAX_RUNTIME)
+                if high < low:
+                    low, high = DEFAULT_MIN_RUNTIME, DEFAULT_MAX_RUNTIME
+                default = min(max(_to_int(tr.get("defaultValue"), DEFAULT_RUNTIME), low), high)
+                return low, high, default
         return DEFAULT_MIN_RUNTIME, DEFAULT_MAX_RUNTIME, DEFAULT_RUNTIME
+
+    def supports_mode(self, imei: str, address: int, mode: str) -> bool:
+        """Whether the heater lists this operation mode (True when it lists none)."""
+        modes = {c.get("operationMode") for c in self._capabilities(imei, address)}
+        return not modes or mode in modes
 
     @callback
     def async_schedule_refresh(self, delay: int) -> None:
@@ -127,3 +134,30 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
             self._cancel_refresh()
             self._cancel_refresh = None
         await super().async_shutdown()
+
+
+def _to_int(value: Any, default: int) -> int:
+    """Return value as a positive int, or the default if it is missing or unusable."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    return number if number > 0 else default
+
+
+def _index_heaters(imei: str, heaters: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+    """Key heaters by bus address, skipping (and logging) any that have no usable one."""
+    indexed: dict[int, dict[str, Any]] = {}
+    for idx, heater in enumerate(heaters):
+        raw = heater.get("address", idx + 1)
+        try:
+            address = int(raw)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Skipping heater on device ending %s with unusable address %r",
+                imei[-4:],
+                raw,
+            )
+            continue
+        indexed[address] = heater
+    return indexed

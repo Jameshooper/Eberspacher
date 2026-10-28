@@ -77,31 +77,40 @@ async def test_cloud_down_at_setup_retries(hass, entry, aioclient_mock):
 
 
 @pytest.mark.parametrize("bad", [{"address": None}, {"address": "front"}])
-async def test_malformed_heater_address_breaks_setup(hass, entry, aioclient_mock, bad):
-    """FINDING: an unexpected 'address' value crashes the update instead of being skipped."""
-    set_heater_reply(aioclient_mock, heater(**bad))
+async def test_malformed_heater_address_is_skipped(hass, entry, aioclient_mock, bad, caplog):
+    """A heater with an unusable address is skipped and logged; the rest still loads."""
+    good = heater(address=2)
+    set_heater_reply(aioclient_mock, heater(**bad), good)
     await setup(hass, entry)
-    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get(SWITCH) is not None  # heater 2
+    assert len(hass.states.async_entity_ids("switch")) == 1
+    assert "unusable address" in caplog.text
+    assert IMEI not in caplog.text  # only the last digits are logged
 
 
-async def test_malformed_capabilities_breaks_platform(hass, entry, aioclient_mock):
-    """FINDING: a non-numeric runtime limit raises during entity creation."""
-    h = heater(capabilities=[{"operationMode": "HEATING",
-                              "targetRuntime": {"minimumValue": "ten"}}])
-    set_heater_reply(aioclient_mock, h)
+@pytest.mark.parametrize("caps", [
+    [{"operationMode": "HEATING", "targetRuntime": {"minimumValue": "ten"}}],
+    [{"operationMode": "HEATING", "targetRuntime": {"minimumValue": 200, "maximumValue": 50}}],
+    [{"operationMode": "HEATING", "targetRuntime": "junk"}, "junk"],
+    "junk",
+])
+async def test_malformed_capabilities_fall_back_to_defaults(hass, entry, aioclient_mock, caps):
+    set_heater_reply(aioclient_mock, heater(capabilities=caps))
     await setup(hass, entry)
-    # Setup "succeeds" but the Run time number platform failed to load...
-    assert hass.states.get(RUNTIME) is None
-    # ...and the switch loads but cannot be turned on (raw ValueError, not a HA error).
-    assert hass.states.get(SWITCH) is not None
-    with pytest.raises(ValueError):
-        await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
+    state = hass.states.get(RUNTIME)
+    assert state.attributes["min"] == 10 and state.attributes["max"] == 120
+    await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
+    assert calls_to(aioclient_mock, "PUT", "/heaters/1")[-1][2]["runtime"] == 30
 
 
-async def test_string_temperature_is_dropped(hass, entry, aioclient_mock):
-    set_heater_reply(aioclient_mock, heater(lastMeasuredTemperature="21.5"))
+@pytest.mark.parametrize(("raw", "shown"), [
+    ("21.5", "21.5"), (-7, "-7.0"), ("n/a", "unknown"), (True, "unknown"),
+])
+async def test_temperature_parsing(hass, entry, aioclient_mock, raw, shown):
+    set_heater_reply(aioclient_mock, heater(lastMeasuredTemperature=raw))
     await setup(hass, entry)
-    assert hass.states.get(TEMP).state == "unknown"
+    assert hass.states.get(TEMP).state == shown
 
 
 async def test_running_heater_state_and_faster_poll(hass, entry, aioclient_mock):
@@ -148,12 +157,34 @@ async def test_number_rejects_out_of_range(hass, entry, cloud):
                                        {"entity_id": RUNTIME, "value": 500}, blocking=True)
 
 
-async def test_service_runtime_bypasses_heater_maximum(hass, entry, cloud):
-    """FINDING: start_heating accepts up to 600 min although the heater max is 120."""
+@pytest.mark.parametrize("runtime", [5, 121, 600])
+async def test_service_runtime_outside_heater_limits_rejected(hass, entry, cloud, runtime):
+    """start_heating must respect the heater's own 10-120 min limits."""
+    await setup(hass, entry)
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "start_heating",
+                                       {"entity_id": SWITCH, "runtime": runtime}, blocking=True)
+    assert calls_to(cloud, "PUT", "/heaters/1") == []
+
+
+async def test_service_runtime_within_limits_and_ventilation(hass, entry, cloud):
     await setup(hass, entry)
     await hass.services.async_call(DOMAIN, "start_heating",
-                                   {"entity_id": SWITCH, "runtime": 600}, blocking=True)
-    assert calls_to(cloud, "PUT", "/heaters/1")[-1][2]["runtime"] == 600
+                                   {"entity_id": SWITCH, "runtime": 120, "mode": "VENTILATION"},
+                                   blocking=True)
+    put = calls_to(cloud, "PUT", "/heaters/1")[-1][2]
+    assert put["runtime"] == 120 and put["operationMode"] == "VENTILATION"
+
+
+async def test_service_rejects_unsupported_mode(hass, entry, aioclient_mock):
+    h = heater(capabilities=[{"operationMode": "HEATING",
+                              "targetRuntime": {"minimumValue": 10, "maximumValue": 120}}])
+    set_heater_reply(aioclient_mock, h)
+    await setup(hass, entry)
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "start_heating",
+                                       {"entity_id": SWITCH, "mode": "VENTILATION"}, blocking=True)
+    assert calls_to(aioclient_mock, "PUT", "/heaters/1") == []
 
 
 async def test_service_rejects_bad_input(hass, entry, cloud):
@@ -185,8 +216,8 @@ async def test_refresh_after_command(hass, entry, cloud, freezer):
     assert len(calls_to(cloud, "GET", "/heaters")) == before + 1
 
 
-async def test_failed_start_shows_on_until_next_poll(hass, entry, cloud, freezer):
-    """FINDING: if the cloud never confirms, the switch stays 'on' for ~10 min, not 90 s."""
+async def test_unconfirmed_start_reverts_after_pending_window(hass, entry, cloud, freezer):
+    """If the cloud never confirms, the switch returns to the real state after 90 s."""
     await setup(hass, entry)
     await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
     # 15 s re-read: cloud still says OFF; pending keeps 'on' (expected, within 90 s).
@@ -194,15 +225,26 @@ async def test_failed_start_shows_on_until_next_poll(hass, entry, cloud, freezer
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert hass.states.get(SWITCH).state == "on"
-    # Well past the 90 s pending window, but before the 10-minute poll.
-    freezer.tick(timedelta(seconds=120))
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-    assert hass.states.get(SWITCH).state == "on"   # stale: nothing re-writes the state
-    freezer.tick(timedelta(minutes=10))
+    reads = len(calls_to(cloud, "GET", "/heaters"))
+    # Past the 90 s pending window, well before the 10-minute poll.
+    freezer.tick(timedelta(seconds=80))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert hass.states.get(SWITCH).state == "off"
+    assert len(calls_to(cloud, "GET", "/heaters")) == reads + 1  # re-read on expiry
+
+
+async def test_confirmed_start_stays_on(hass, entry, cloud, freezer):
+    await setup(hass, entry)
+    await hass.services.async_call("switch", "turn_on", {"entity_id": SWITCH}, blocking=True)
+    set_heater_reply(cloud, heater(state="ON", heaterState="ON"))
+    freezer.tick(timedelta(seconds=16))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    freezer.tick(timedelta(seconds=120))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get(SWITCH).state == "on"
 
 
 async def test_request_temperature_button(hass, entry, cloud):

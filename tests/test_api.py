@@ -60,13 +60,11 @@ async def test_login_200_without_token(hass, aioclient_mock):
         await api(hass).async_login()
 
 
-async def test_login_200_non_json_body_is_not_mapped(hass, aioclient_mock):
-    """FINDING: an HTML maintenance page with status 200 escapes as a raw ValueError."""
+async def test_login_200_non_json_body_is_connection_error(hass, aioclient_mock):
+    """An HTML maintenance page with status 200 is a connection problem, not a crash."""
     aioclient_mock.post(f"{BASE_URL}/authenticate", text="<html>maintenance</html>")
-    with pytest.raises(Exception) as info:
+    with pytest.raises(EberspaecherConnectionError):
         await api(hass).async_login()
-    assert not isinstance(info.value, (EberspaecherAuthError, EberspaecherConnectionError))
-    assert isinstance(info.value, ValueError)
 
 
 async def test_token_reused_between_requests(hass, cloud):
@@ -103,12 +101,14 @@ async def test_persistent_401_raises_auth_without_looping(hass, aioclient_mock):
     assert len(calls_to(aioclient_mock, "GET", "/calls")) == 2  # exactly one retry
 
 
-async def test_403_on_resource_is_treated_as_bad_password(hass, aioclient_mock):
-    """FINDING: a 403 for one device (valid login) raises AuthError -> reauth prompt."""
+async def test_403_on_resource_is_not_treated_as_bad_password(hass, aioclient_mock):
+    """A 403 that survives a fresh login (valid credentials) must not trigger reauth."""
     aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": "t"})
     aioclient_mock.get(f"{BASE_URL}/calls/{IMEI}/heaters", status=403)
-    with pytest.raises(EberspaecherAuthError):
+    with pytest.raises(EberspaecherConnectionError) as info:
         await api(hass).async_get_heaters(IMEI)
+    assert not isinstance(info.value, EberspaecherAuthError)
+    assert len(calls_to(aioclient_mock, "POST", "/authenticate")) == 2
 
 
 async def test_calls_paged_dict_and_filters_junk(hass, aioclient_mock):
@@ -120,13 +120,19 @@ async def test_calls_paged_dict_and_filters_junk(hass, aioclient_mock):
     assert await api(hass).async_get_calls() == [{"imei": "1"}]
 
 
-async def test_heaters_dict_response_silently_becomes_empty(hass, aioclient_mock):
-    """FINDING: a wrapped {'content': [...]} heaters reply yields [] with no log."""
+async def test_heaters_paged_dict_is_unwrapped(hass, aioclient_mock):
     aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": "t"})
     aioclient_mock.get(
         f"{BASE_URL}/calls/{IMEI}/heaters", json={"content": [{"address": 1}]}
     )
+    assert await api(hass).async_get_heaters(IMEI) == [{"address": 1}]
+
+
+async def test_heaters_unexpected_type_logs_warning(hass, aioclient_mock, caplog):
+    aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": "t"})
+    aioclient_mock.get(f"{BASE_URL}/calls/{IMEI}/heaters", text="<html>")
     assert await api(hass).async_get_heaters(IMEI) == []
+    assert "Unexpected reply" in caplog.text
 
 
 async def test_set_heater_payload(hass, cloud):
