@@ -253,6 +253,35 @@ async def test_request_temperature_button(hass, entry, cloud):
     assert len(calls_to(cloud, "POST", "/temperature")) == 1
 
 
+async def test_request_temperature_retries_until_value_appears(hass, entry, cloud, freezer):
+    """Follow-up reads continue until lastMeasuredTemperature is non-null."""
+    await setup(hass, entry)
+    await hass.services.async_call("button", "press", {"entity_id": BUTTON}, blocking=True)
+    before = heater_reads(cloud)
+    await tick(hass, freezer, 31)       # first retry (REFRESH_DELAY_TEMPERATURE=30)
+    assert heater_reads(cloud) - before == 1
+    assert hass.states.get(TEMP).state == "unknown"   # still null
+    set_heater_reply(cloud, heater(lastMeasuredTemperature=18.5))
+    await tick(hass, freezer, 46)       # second retry: value arrives
+    assert hass.states.get(TEMP).state == "18.5"
+    reads_after = heater_reads(cloud)
+    await tick(hass, freezer, 46)       # no further retries once settled
+    assert heater_reads(cloud) == reads_after
+
+
+async def test_request_temperature_retries_are_capped(hass, entry, cloud, freezer):
+    """Retries stop after SETTLE_MAX_READS even if temperature never appears."""
+    await setup(hass, entry)
+    await hass.services.async_call("button", "press", {"entity_id": BUTTON}, blocking=True)
+    before = heater_reads(cloud)
+    await tick(hass, freezer, 31)       # first retry
+    for _ in range(10):
+        await tick(hass, freezer, 46)
+    # Initial read + SETTLE_MAX_READS (6) follow-ups, then no more
+    assert heater_reads(cloud) - before == 7
+    assert entry.runtime_data.temperature_reads == 0
+
+
 async def test_run_time_restored(hass, entry, cloud):
     mock_restore_cache_with_extra_data(hass, [(
         State(RUNTIME, "55"),
