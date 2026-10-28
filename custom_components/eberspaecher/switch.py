@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import (
     AddConfigEntryEntitiesCallback,
@@ -26,6 +27,7 @@ from .const import (
 from .entity import EberspaecherEntity
 
 SERVICE_START = "start_heating"
+PENDING_TIMEOUT = 90  # seconds to show the requested state while waiting for the cloud
 
 
 async def async_setup_entry(
@@ -61,10 +63,25 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
 
     def __init__(self, coordinator, imei: str, address: int) -> None:
         super().__init__(coordinator, imei, address, "heating")
+        # The cloud takes a while to report a new state, so after a command the
+        # switch shows the requested state until the cloud confirms it (or a timeout),
+        # instead of flipping back to the old state and then forward again.
+        self._pending: bool | None = None
+        self._pending_until = 0.0
 
     @property
     def is_on(self) -> bool:
+        if self._pending is not None and time.monotonic() < self._pending_until:
+            return self._pending
         return self.heater.get("state") == STATE_ON
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        if self._pending is not None:
+            confirmed = (self.heater.get("state") == STATE_ON) == self._pending
+            if confirmed or time.monotonic() >= self._pending_until:
+                self._pending = None
+        super()._handle_coordinator_update()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -84,6 +101,9 @@ class EberspaecherHeatingSwitch(EberspaecherEntity, SwitchEntity):
             )
         except EberspaecherError as err:
             raise HomeAssistantError(f"Could not send the command: {err}") from err
+        self._pending = mode != MODE_OFF
+        self._pending_until = time.monotonic() + PENDING_TIMEOUT
+        self.async_write_ha_state()
         self.coordinator.async_schedule_refresh(REFRESH_DELAY_COMMAND)
 
     async def async_start_heating(
