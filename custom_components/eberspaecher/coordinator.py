@@ -126,6 +126,11 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
                 for device in result.values()
                 for h in device.heaters.values()
             )
+            _LOGGER.debug(
+                "Temperature retry: reads_remaining=%d, temp_missing=%s",
+                self.temperature_reads,
+                temp_missing,
+            )
             if temp_missing:
                 self.temperature_reads -= 1
                 self.async_schedule_refresh(SETTLE_DELAY)
@@ -166,7 +171,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
 
         async def _refresh(_now: Any) -> None:
             self._cancel_refresh = None
-            await self.async_request_refresh()
+            await self.async_refresh()
 
         self._cancel_refresh = async_call_later(self.hass, delay, _refresh)
 
