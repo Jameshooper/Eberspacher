@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import aiohttp
@@ -22,6 +23,11 @@ HEADER_EMAIL = "ESCW-Auth-Email"
 HEADER_PASSWORD = "ESCW-Auth-Password"
 HEADER_TOKEN = "ESCW-Auth-Token"
 
+# A failed DNS lookup or refused connection means the request never left this
+# machine, so it is safe to try again (also for start/stop commands).
+CONNECT_ATTEMPTS = 3
+CONNECT_RETRY_DELAY = 3  # seconds
+
 
 class EberspaecherError(Exception):
     """Base error for the API client."""
@@ -33,6 +39,20 @@ class EberspaecherAuthError(EberspaecherError):
 
 class EberspaecherConnectionError(EberspaecherError):
     """The service could not be reached or returned an unexpected error."""
+
+
+async def _retry_connect(func: Callable[[], Awaitable[Any]]) -> Any:
+    """Run func, retrying only when the connection could not be opened at all."""
+    for attempt in range(1, CONNECT_ATTEMPTS + 1):
+        try:
+            return await func()
+        except aiohttp.ClientConnectorError as err:
+            if attempt == CONNECT_ATTEMPTS:
+                raise
+            _LOGGER.debug(
+                "Could not connect (attempt %s/%s): %s", attempt, CONNECT_ATTEMPTS, err
+            )
+            await asyncio.sleep(CONNECT_RETRY_DELAY)
 
 
 class EberspaecherApi:
@@ -54,14 +74,17 @@ class EberspaecherApi:
             HEADER_PASSWORD: self._password,
             "Accept": "application/json",
         }
-        try:
+        async def _post() -> Any:
             async with self._session.post(
                 f"{BASE_URL}/authenticate", headers=headers, timeout=TIMEOUT
             ) as resp:
                 if resp.status in (400, 401, 403):
                     raise EberspaecherAuthError("Invalid email or password")
                 resp.raise_for_status()
-                data = await resp.json(content_type=None)
+                return await resp.json(content_type=None)
+
+        try:
+            data = await _retry_connect(_post)
         except EberspaecherError:
             raise
         except (TimeoutError, aiohttp.ClientError) as err:
@@ -100,7 +123,7 @@ class EberspaecherApi:
         await self._async_ensure_token()
         token = self._token
         headers = {HEADER_TOKEN: token or "", "Accept": "application/json"}
-        try:
+        async def _send() -> tuple[int, str]:
             async with self._session.request(
                 method,
                 f"{BASE_URL}{path}",
@@ -109,27 +132,28 @@ class EberspaecherApi:
                 json=payload,
                 timeout=TIMEOUT,
             ) as resp:
-                if resp.status in (401, 403):
-                    # Only drop the token if no other request has replaced it yet.
-                    if self._token == token:
-                        self._token = None
-                    if retry:
-                        return await self._async_request(
-                            method, path, params=params, payload=payload, retry=False
-                        )
-                    if resp.status == 403:
-                        raise EberspaecherConnectionError(
-                            f"{method} {path} was refused (403)"
-                        )
-                    raise EberspaecherAuthError("Session was rejected")
-                resp.raise_for_status()
-                text = await resp.text()
-        except EberspaecherError:
-            raise
+                if resp.status not in (401, 403):
+                    resp.raise_for_status()
+                return resp.status, await resp.text()
+
+        try:
+            status, text = await _retry_connect(_send)
         except (TimeoutError, aiohttp.ClientError) as err:
             raise EberspaecherConnectionError(
                 f"{method} {path} failed: {err}"
             ) from err
+
+        if status in (401, 403):
+            # Only drop the token if no other request has replaced it yet.
+            if self._token == token:
+                self._token = None
+            if retry:
+                return await self._async_request(
+                    method, path, params=params, payload=payload, retry=False
+                )
+            if status == 403:
+                raise EberspaecherConnectionError(f"{method} {path} was refused (403)")
+            raise EberspaecherAuthError("Session was rejected")
 
         if not text:
             return None
