@@ -15,11 +15,14 @@ Home Assistant log are welcome.
 
 ## Install (HACS)
 
-1. HACS → three-dot menu → **Custom repositories** → add this repository, category
-   **Integration**.
-2. Install **Eberspächer EasyStart Web** and restart Home Assistant.
+1. In HACS, search for **Eberspächer EasyStart Web** and download it.
+2. Restart Home Assistant.
 3. **Settings → Devices & services → Add integration → Eberspächer EasyStart Web**,
    then sign in with your myeberspaecher.com email and password.
+
+If it does not show up in the HACS search yet, add it as a custom repository instead:
+HACS → three-dot menu → **Custom repositories** → add this repository, category
+**Integration**, then continue from step 1.
 
 Manual install: copy `custom_components/eberspaecher` into your Home Assistant
 `custom_components` folder and restart.
