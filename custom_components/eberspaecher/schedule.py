@@ -142,13 +142,9 @@ class Action:
 
 
 def choose_action(cfg: ScheduleConfig, temperature: float | None) -> Action | None:
-    """The action for this temperature, or None when nothing is needed.
-
-    Without a temperature reading the cold band is used: running the heater
-    needlessly costs little, a frozen car costs more.
-    """
+    """The action for this temperature, or None when nothing is needed or it is unknown."""
     if temperature is None:
-        return Action(MODE_HEATING, cfg.cold_runtime)
+        return None
     if cfg.vent_enabled and temperature >= cfg.vent_above:
         return Action(MODE_VENTILATION, cfg.vent_runtime)
     if temperature > cfg.no_heat_above:
@@ -279,20 +275,25 @@ class ScheduleManager:
         action = choose_action(cfg, temperature)
         if action is None:
             if at == start_times(cfg)[-1]:
-                self.last_result = f"Not needed ({temperature} °C)"
-                await self._notify(
-                    "Car heater not needed today",
-                    f"It is {temperature:g} °C, so the heater was not started.",
-                )
+                if temperature is None:
+                    self.last_result = "Not started: no temperature reading"
+                    await self._notify(
+                        "Car heater not started",
+                        "There is no temperature reading, so the schedule did not "
+                        "start the heater. Check the temperature sensor.",
+                    )
+                else:
+                    self.last_result = f"Not needed ({temperature:g} °C)"
+                    await self._notify(
+                        "Car heater not needed today",
+                        f"It is {temperature:g} °C, so the heater was not started.",
+                    )
                 self._notify_listeners()
             return
         if start_time(cfg, action.runtime) != at:
             return
 
-        if temperature is None:
-            reading = "No temperature reading, assuming cold."
-        else:
-            reading = f"{temperature:g} °C from {source}."
+        reading = f"{temperature:g} °C from {source}."
         label = "Ventilation" if action.mode == MODE_VENTILATION else "Heating"
         ready = cfg.ready_by.strftime("%H:%M")
 

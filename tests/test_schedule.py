@@ -52,7 +52,7 @@ SAT = datetime(2026, 11, 7, 6, 30, tzinfo=timezone.utc)
         (-9.5, Action("HEATING", 70)),
         (-10, Action("HEATING", 100)),
         (-25, Action("HEATING", 100)),
-        (None, Action("HEATING", 70)),
+        (None, None),
     ],
 )
 def test_bands(temp, expected):
@@ -224,12 +224,15 @@ async def test_missing_sensor_falls_back_to_heater_reading(hass, scheduled, clou
     assert calls_to(cloud, "PUT", "/heaters/1")[-1][2]["runtime"] == 100
 
 
-async def test_no_reading_assumes_cold(hass, scheduled, cloud):
+async def test_no_reading_does_not_start_and_says_so(hass, scheduled, cloud):
     entry, notes = scheduled
     hass.states.async_set(SENSOR, "unavailable")
-    await entry.runtime_data.scheduler.async_run(time(7, 0), at(7, 0))
-    assert calls_to(cloud, "PUT", "/heaters/1")[-1][2]["runtime"] == 70
-    assert "assuming cold" in notes[-1].data["message"]
+    sched = entry.runtime_data.scheduler
+    for t in (time(6, 30), time(7, 0), time(7, 30)):
+        await sched.async_run(t, at(t.hour, t.minute))
+    assert calls_to(cloud, "PUT", "/heaters/1") == []
+    assert len(notes) == 1 and "not started" in notes[0].data["title"]
+    assert "Not started" in sched.last_result
 
 
 async def test_running_heater_is_left_alone(hass, scheduled, cloud):

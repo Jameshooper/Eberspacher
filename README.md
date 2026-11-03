@@ -111,8 +111,8 @@ get a "not needed" message at the last start time.
 
 - **Temperature source:** the sensor you choose (°C or °F). If it is unavailable, the
   heater's last reading is used (press **Request temperature** to refresh it). With no
-  reading at all, the schedule assumes cold, because running the heater needlessly costs
-  less than a frozen car.
+  reading at all, the heater is not started and you get a "not started" message at the
+  last start time.
 - **Pausing:** use the **Schedule** switch, for example on holiday.
 - **Notifications:** a message when the heater starts, when starting fails, and when it is
   not needed. Leave the service empty for none.
