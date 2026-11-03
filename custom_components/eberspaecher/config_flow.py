@@ -18,9 +18,17 @@ from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
+    TimeSelector,
 )
 
 from .api import (
@@ -29,11 +37,27 @@ from .api import (
     EberspaecherConnectionError,
 )
 from .const import (
+    CONF_COLD_BELOW,
+    CONF_COLD_RUNTIME,
     CONF_IDLE_INTERVAL,
+    CONF_MILD_RUNTIME,
+    CONF_NO_HEAT_ABOVE,
+    CONF_NOTIFY_SERVICE,
+    CONF_READY_BY,
+    CONF_SCHEDULE_ENABLED,
+    CONF_TEMPERATURE_ENTITY,
+    CONF_VENT_ABOVE,
+    CONF_VENT_ENABLED,
+    CONF_VENT_RUNTIME,
+    CONF_VERY_COLD_BELOW,
+    CONF_VERY_COLD_RUNTIME,
+    CONF_WEEKDAYS,
     DEFAULT_IDLE_INTERVAL,
     DOMAIN,
     IDLE_INTERVAL_CHOICES,
+    WEEKDAYS,
 )
+from .schedule import ScheduleConfig, longest_runtime_fits
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -122,16 +146,54 @@ class EberspaecherConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
+def _temperature() -> NumberSelector:
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=-50,
+            max=60,
+            step=0.5,
+            unit_of_measurement="°C",
+            mode=NumberSelectorMode.BOX,
+        )
+    )
+
+
+def _minutes() -> NumberSelector:
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=1,
+            max=600,
+            step=1,
+            unit_of_measurement="min",
+            mode=NumberSelectorMode.BOX,
+        )
+    )
+
+
 class EberspaecherOptionsFlow(OptionsFlow):
-    """Let the user choose how often the status is checked while idle."""
+    """Polling, the start schedule and the summer ventilation rule."""
+
+    def _save(self, **changes: Any) -> ConfigFlowResult:
+        return self.async_create_entry(data={**self.config_entry.options, **changes})
+
+    def _config(self, **changes: Any) -> ScheduleConfig:
+        """The stored schedule options with the not yet saved changes applied."""
+        return ScheduleConfig.from_options({**self.config_entry.options, **changes})
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["polling", "schedule", "heating_bands", "ventilation"],
+        )
+
+    async def async_step_polling(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """How often the status is checked while idle."""
         if user_input is not None:
-            return self.async_create_entry(
-                data={CONF_IDLE_INTERVAL: int(user_input[CONF_IDLE_INTERVAL])}
-            )
+            return self._save(**{CONF_IDLE_INTERVAL: int(user_input[CONF_IDLE_INTERVAL])})
 
         current = self.config_entry.options.get(CONF_IDLE_INTERVAL, DEFAULT_IDLE_INTERVAL)
         schema = vol.Schema(
@@ -145,4 +207,122 @@ class EberspaecherOptionsFlow(OptionsFlow):
                 )
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="polling", data_schema=schema)
+
+    async def async_step_schedule(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """When the car should be ready, and which temperature to go by."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input.get(CONF_WEEKDAYS):
+                errors["base"] = "no_weekdays"
+            elif not longest_runtime_fits(self._config(**user_input)):
+                errors["base"] = "runtime_too_long"
+            else:
+                # A cleared optional field is missing from the input; clear it too.
+                return self._save(
+                    **{CONF_TEMPERATURE_ENTITY: None, CONF_NOTIFY_SERVICE: None, **user_input}
+                )
+
+        cfg = self._config(**(user_input or {}))
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_SCHEDULE_ENABLED, default=cfg.enabled
+                ): BooleanSelector(),
+                vol.Required(
+                    CONF_READY_BY, default=cfg.ready_by.strftime("%H:%M:%S")
+                ): TimeSelector(),
+                vol.Required(CONF_WEEKDAYS, default=list(cfg.weekdays)): SelectSelector(
+                    SelectSelectorConfig(
+                        options=WEEKDAYS,
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_WEEKDAYS,
+                    )
+                ),
+                vol.Optional(
+                    CONF_TEMPERATURE_ENTITY,
+                    description={"suggested_value": cfg.temperature_entity},
+                ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+                vol.Optional(
+                    CONF_NOTIFY_SERVICE,
+                    description={"suggested_value": cfg.notify_service},
+                ): TextSelector(),
+            }
+        )
+        return self.async_show_form(step_id="schedule", data_schema=schema, errors=errors)
+
+    async def async_step_heating_bands(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Run time for each temperature band."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not (
+                user_input[CONF_NO_HEAT_ABOVE]
+                > user_input[CONF_COLD_BELOW]
+                > user_input[CONF_VERY_COLD_BELOW]
+            ):
+                errors["base"] = "bands_order"
+            elif not longest_runtime_fits(self._config(**user_input)):
+                errors["base"] = "runtime_too_long"
+            else:
+                return self._save(
+                    **{
+                        k: (int(v) if k.endswith("runtime") else float(v))
+                        for k, v in user_input.items()
+                    }
+                )
+
+        cfg = self._config(**(user_input or {}))
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NO_HEAT_ABOVE, default=cfg.no_heat_above): _temperature(),
+                vol.Required(CONF_MILD_RUNTIME, default=cfg.mild_runtime): _minutes(),
+                vol.Required(CONF_COLD_BELOW, default=cfg.cold_below): _temperature(),
+                vol.Required(CONF_COLD_RUNTIME, default=cfg.cold_runtime): _minutes(),
+                vol.Required(
+                    CONF_VERY_COLD_BELOW, default=cfg.very_cold_below
+                ): _temperature(),
+                vol.Required(
+                    CONF_VERY_COLD_RUNTIME, default=cfg.very_cold_runtime
+                ): _minutes(),
+            }
+        )
+        return self.async_show_form(
+            step_id="heating_bands", data_schema=schema, errors=errors
+        )
+
+    async def async_step_ventilation(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Optional summer rule: ventilate the car when it is hot."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            cfg = self._config(**user_input)
+            if user_input[CONF_VENT_ABOVE] <= cfg.no_heat_above:
+                errors["base"] = "vent_below_heating"
+            elif not longest_runtime_fits(cfg):
+                errors["base"] = "runtime_too_long"
+            else:
+                return self._save(
+                    **{
+                        CONF_VENT_ENABLED: bool(user_input[CONF_VENT_ENABLED]),
+                        CONF_VENT_ABOVE: float(user_input[CONF_VENT_ABOVE]),
+                        CONF_VENT_RUNTIME: int(user_input[CONF_VENT_RUNTIME]),
+                    }
+                )
+
+        cfg = self._config(**(user_input or {}))
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_VENT_ENABLED, default=cfg.vent_enabled): BooleanSelector(),
+                vol.Required(CONF_VENT_ABOVE, default=cfg.vent_above): _temperature(),
+                vol.Required(CONF_VENT_RUNTIME, default=cfg.vent_runtime): _minutes(),
+            }
+        )
+        return self.async_show_form(
+            step_id="ventilation", data_schema=schema, errors=errors
+        )

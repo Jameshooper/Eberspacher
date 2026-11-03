@@ -59,7 +59,7 @@ async def test_setup_creates_entities(hass, entry, cloud):
 async def test_unique_ids_are_stable_and_unique(hass, entry, cloud):
     await setup(hass, entry)
     ids = [e.unique_id for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)]
-    assert len(ids) == len(set(ids)) == 6
+    assert len(ids) == len(set(ids)) == 8
 
 
 async def test_auth_failure_at_setup_starts_reauth(hass, entry, aioclient_mock):
@@ -84,7 +84,8 @@ async def test_malformed_heater_address_is_skipped(hass, entry, aioclient_mock, 
     await setup(hass, entry)
     assert entry.state is ConfigEntryState.LOADED
     assert hass.states.get(SWITCH) is not None  # heater 2
-    assert len(hass.states.async_entity_ids("switch")) == 1
+    # heater 2's heating and ventilation switches plus the device's schedule switch
+    assert len(hass.states.async_entity_ids("switch")) == 3
     assert "unusable address" in caplog.text
     assert IMEI not in caplog.text  # only the last digits are logged
 
@@ -378,9 +379,18 @@ async def test_idle_heater_has_no_follow_up_reads(hass, entry, cloud, freezer):
 
 # --- idle polling option ----------------------------------------------------
 
-async def set_idle(hass, entry, value):
+async def open_options(hass, entry, step):
+    """Open the options menu and choose a step."""
     r = await hass.config_entries.options.async_init(entry.entry_id)
-    assert r["step_id"] == "init"
+    assert r["type"] == "menu"
+    return await hass.config_entries.options.async_configure(
+        r["flow_id"], {"next_step_id": step}
+    )
+
+
+async def set_idle(hass, entry, value):
+    r = await open_options(hass, entry, "polling")
+    assert r["step_id"] == "polling"
     r = await hass.config_entries.options.async_configure(
         r["flow_id"], {"idle_interval": value}
     )
@@ -390,7 +400,7 @@ async def set_idle(hass, entry, value):
 
 async def test_options_form_defaults_to_10(hass, entry, cloud):
     await setup(hass, entry)
-    r = await hass.config_entries.options.async_init(entry.entry_id)
+    r = await open_options(hass, entry, "polling")
     key = next(iter(r["data_schema"].schema))
     assert key.default() == "10"
 
@@ -459,6 +469,6 @@ async def test_bad_stored_option_falls_back(hass, cloud):
 
 async def test_options_reject_unknown_choice(hass, entry, cloud):
     await setup(hass, entry)
-    r = await hass.config_entries.options.async_init(entry.entry_id)
+    r = await open_options(hass, entry, "polling")
     with pytest.raises(Exception):
         await hass.config_entries.options.async_configure(r["flow_id"], {"idle_interval": "7"})

@@ -39,3 +39,24 @@ STATE_ON = "ON"
 DEFAULT_RUNTIME = 30
 DEFAULT_MIN_RUNTIME = 10
 DEFAULT_MAX_RUNTIME = 120
+
+# Failed updates in a row before a "cloud unreachable" repair issue is raised.
+FAILURES_BEFORE_ISSUE = 6
+
+# Schedule options (stored in the config entry options).
+CONF_SCHEDULE_ENABLED = "schedule_enabled"
+CONF_READY_BY = "ready_by"
+CONF_WEEKDAYS = "weekdays"
+CONF_TEMPERATURE_ENTITY = "temperature_entity"
+CONF_NOTIFY_SERVICE = "notify_service"
+CONF_NO_HEAT_ABOVE = "no_heat_above"
+CONF_MILD_RUNTIME = "mild_runtime"
+CONF_COLD_BELOW = "cold_below"
+CONF_COLD_RUNTIME = "cold_runtime"
+CONF_VERY_COLD_BELOW = "very_cold_below"
+CONF_VERY_COLD_RUNTIME = "very_cold_runtime"
+CONF_VENT_ENABLED = "vent_enabled"
+CONF_VENT_ABOVE = "vent_above"
+CONF_VENT_RUNTIME = "vent_runtime"
+
+WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]

@@ -31,6 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry)
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
+    coordinator.scheduler.async_configure(dict(entry.options))
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -40,10 +41,12 @@ async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigE
     """Apply a changed polling option without a reload."""
     coordinator = entry.runtime_data
     coordinator.idle_interval = idle_interval(entry)
+    coordinator.scheduler.async_configure(dict(entry.options))
     await coordinator.async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> bool:
     """Unload a config entry."""
+    entry.runtime_data.scheduler.async_stop()
     await entry.runtime_data.async_shutdown()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

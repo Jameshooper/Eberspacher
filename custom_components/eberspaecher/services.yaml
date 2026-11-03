@@ -15,7 +15,6 @@ start_heating:
           mode: box
     mode:
       required: false
-      default: HEATING
       selector:
         select:
           options:

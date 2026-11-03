@@ -39,6 +39,8 @@ Per device (found automatically) and per heater:
 | Entity | What it does |
 |---|---|
 | `switch` Heating | On starts the heater for the **Run time**; off stops it |
+| `switch` Ventilation | Same, but runs ventilation (fan only). Only created if the heater lists ventilation |
+| `switch` Schedule | Turns the automatic start schedule on or off (once per device) |
 | `number` Run time | Minutes the switch runs the heater (the heater's own min/max apply, 10–120 on the unit this was built on). Remembered across restarts |
 | `sensor` Remaining run time | Minutes left in the current run |
 | `sensor` Status | Raw cloud state, e.g. `OFF`, `ACTIVATION_REQUESTED` (disabled by default) |
@@ -59,7 +61,7 @@ target:
   entity_id: switch.my_heater_heating
 data:
   runtime: 40        # minutes, optional
-  mode: HEATING      # or VENTILATION, optional
+  mode: HEATING      # or VENTILATION, optional (defaults to the switch's own mode)
 ```
 
 ## Polling and rate limits
@@ -81,48 +83,79 @@ The login token is reused and refreshed only when the service rejects it. The li
 devices is cached for 6 hours. There is no documented rate limit, so the integration
 deliberately stays gentle.
 
-## Example: be warm at 08:10 on weekdays, depending on outside temperature
+## Automatic start schedule
+
+The integration can start the heater by itself so the car is ready at a set time. The
+colder it is, the earlier it starts. Set it up under **Settings → Devices & services →
+Eberspächer EasyStart Web → Configure**:
+
+| Menu item | What you set |
+|---|---|
+| Schedule | On/off, the **ready-by** time, the days, an outside temperature sensor and an optional notification service (for example `notify.mobile_app_your_phone`) |
+| Heating bands | The temperatures and run time for each band |
+| Summer ventilation | Optional: ventilate instead of heat when it is warm |
+
+Defaults, ready by 08:10 on Monday to Friday:
+
+| Outside temperature | Run time | Starts at |
+|---|---|---|
+| Above 10 °C | Not started | |
+| Above 0 up to 10 °C | 40 min | 07:30 |
+| Above -10 up to 0 °C | 70 min | 07:00 |
+| -10 °C or colder | 100 min | 06:30 |
+
+The integration wakes at each of those start times, reads the temperature and starts the
+heater only if the temperature belongs to that start time's band. It starts at most once a
+day and leaves a heater that is already running alone. On a day that needs no heating you
+get a "not needed" message at the last start time.
+
+- **Temperature source:** the sensor you choose (°C or °F). If it is unavailable, the
+  heater's last reading is used (press **Request temperature** to refresh it). With no
+  reading at all, the schedule assumes cold, because running the heater needlessly costs
+  less than a frozen car.
+- **Pausing:** use the **Schedule** switch, for example on holiday.
+- **Notifications:** a message when the heater starts, when starting fails, and when it is
+  not needed. Leave the service empty for none.
+- **The longest run time must fit** between midnight and the ready-by time.
+
+### Summer ventilation
+
+If your heater supports ventilation, a **Ventilation** switch appears next to Heating. It
+runs the fan without heating, using the same **Run time** number (kept within the
+ventilation limits the heater reports). In the schedule menu you can turn on
+**Summer ventilation**: when the temperature is at or above a chosen value (25 °C by
+default), the schedule runs ventilation for the chosen time (20 minutes by default) so the
+car is cooler when you get in. It uses the same ready-by time and days. What ventilation
+does depends on the heater model, so try it by hand first.
+
+### Prefer your own automation?
+
+The schedule is optional. Leave it off and use `eberspaecher.start_heating` from your own
+automations, for example:
 
 ```yaml
-alias: Car pre-heat for 08:10
+alias: Car pre-heat when very cold
 triggers:
   - trigger: time
     at: "06:30:00"
-    id: very_cold
-  - trigger: time
-    at: "07:00:00"
-    id: cold
-  - trigger: time
-    at: "07:30:00"
-    id: mild
 conditions:
   - condition: time
     weekday: [mon, tue, wed, thu, fri]
-  - condition: state
-    entity_id: switch.my_heater_heating
-    state: "off"
+  - condition: numeric_state
+    entity_id: sensor.outdoor_temperature
+    below: -10
 actions:
-  - variables:
-      t: "{{ states('sensor.outdoor_temperature') | float(99) }}"
-  - choose:
-      - conditions: "{{ trigger.id == 'very_cold' and t <= -10 }}"
-        sequence:
-          - action: eberspaecher.start_heating
-            target: { entity_id: switch.my_heater_heating }
-            data: { runtime: 100 }
-      - conditions: "{{ trigger.id == 'cold' and t > -10 and t <= 0 }}"
-        sequence:
-          - action: eberspaecher.start_heating
-            target: { entity_id: switch.my_heater_heating }
-            data: { runtime: 70 }
-      - conditions: "{{ trigger.id == 'mild' and t > 0 and t <= 10 }}"
-        sequence:
-          - action: eberspaecher.start_heating
-            target: { entity_id: switch.my_heater_heating }
-            data: { runtime: 40 }
+  - action: eberspaecher.start_heating
+    target: { entity_id: switch.my_heater_heating }
+    data: { runtime: 100 }
 ```
 
-Replace the switch and temperature sensor with your own entities.
+## Diagnostics and repairs
+
+- **Download diagnostics** on the integration page gives a file for bug reports. Your
+  email, password and device ID are removed from it.
+- If the cloud cannot be reached for six checks in a row, a notice appears under
+  **Settings → Repairs**. It goes away by itself when the connection works again.
 
 ## Known limits
 

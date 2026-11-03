@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
 from .entity import EberspaecherEntity
+from .util import parse_temperature
 
 
 async def async_setup_entry(
@@ -77,15 +78,4 @@ class EberspaecherTemperatureSensor(EberspaecherEntity, SensorEntity):
 
     @property
     def native_value(self) -> float | None:
-        value = self.heater.get("lastMeasuredTemperature")
-        if value is None:
-            return None
-        # API returns a dict: {'temperature': 13, 'temperatureUnit': 'DEGREE_CELSIUS'}
-        if isinstance(value, dict):
-            value = value.get("temperature")
-        if value is None or isinstance(value, bool):
-            return None
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
+        return parse_temperature(self.heater.get("lastMeasuredTemperature"))

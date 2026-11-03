@@ -11,6 +11,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -19,6 +20,7 @@ from .api import (
     EberspaecherAuthError,
     EberspaecherConnectionError,
 )
+from .schedule import ScheduleManager
 from .const import (
     CALLS_CACHE_SECONDS,
     CONF_IDLE_INTERVAL,
@@ -27,6 +29,7 @@ from .const import (
     DEFAULT_MIN_RUNTIME,
     DEFAULT_RUNTIME,
     DOMAIN,
+    FAILURES_BEFORE_ISSUE,
     MODE_HEATING,
     SETTLE_DELAY,
     SETTLE_MAX_READS,
@@ -83,6 +86,13 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.settle_reads = 0
         # Follow-up reads remaining after a temperature request (counts down to 0).
         self.temperature_reads = 0
+        # Failed updates in a row, for the "cloud unreachable" repair issue.
+        self._failures = 0
+        self.scheduler = ScheduleManager(hass, self)
+
+    @property
+    def _issue_id(self) -> str:
+        return f"cloud_unreachable_{self.config_entry.entry_id}"
 
     async def _async_update_data(self) -> dict[str, EberspaecherDevice]:
         try:
@@ -102,7 +112,21 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         except EberspaecherAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except EberspaecherConnectionError as err:
+            self._failures += 1
+            if self._failures == FAILURES_BEFORE_ISSUE:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    self._issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="cloud_unreachable",
+                    translation_placeholders={"error": str(err)},
+                )
             raise UpdateFailed(str(err)) from err
+
+        self._failures = 0
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
 
         heaters = [h for device in result.values() for h in device.heaters.values()]
         transitional = any(
@@ -145,23 +169,36 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         caps = heater.get("capabilities")
         return [c for c in caps if isinstance(c, dict)] if isinstance(caps, list) else []
 
-    def runtime_limits(self, imei: str, address: int) -> tuple[int, int, int]:
-        """Return (min, max, default) run time in minutes for a heater."""
-        for cap in self._capabilities(imei, address):
-            tr = cap.get("targetRuntime")
-            if cap.get("operationMode") == MODE_HEATING and isinstance(tr, dict):
-                low = _to_int(tr.get("minimumValue"), DEFAULT_MIN_RUNTIME)
-                high = _to_int(tr.get("maximumValue"), DEFAULT_MAX_RUNTIME)
-                if high < low:
-                    low, high = DEFAULT_MIN_RUNTIME, DEFAULT_MAX_RUNTIME
-                default = min(max(_to_int(tr.get("defaultValue"), DEFAULT_RUNTIME), low), high)
-                return low, high, default
+    def runtime_limits(
+        self, imei: str, address: int, mode: str = MODE_HEATING
+    ) -> tuple[int, int, int]:
+        """Return (min, max, default) run time in minutes for a heater and mode.
+
+        A mode without limits of its own uses the heating limits, and those fall
+        back to built-in defaults.
+        """
+        for wanted in (mode, MODE_HEATING):
+            for cap in self._capabilities(imei, address):
+                tr = cap.get("targetRuntime")
+                if cap.get("operationMode") == wanted and isinstance(tr, dict):
+                    low = _to_int(tr.get("minimumValue"), DEFAULT_MIN_RUNTIME)
+                    high = _to_int(tr.get("maximumValue"), DEFAULT_MAX_RUNTIME)
+                    if high < low:
+                        low, high = DEFAULT_MIN_RUNTIME, DEFAULT_MAX_RUNTIME
+                    default = min(
+                        max(_to_int(tr.get("defaultValue"), DEFAULT_RUNTIME), low), high
+                    )
+                    return low, high, default
         return DEFAULT_MIN_RUNTIME, DEFAULT_MAX_RUNTIME, DEFAULT_RUNTIME
 
     def supports_mode(self, imei: str, address: int, mode: str) -> bool:
         """Whether the heater lists this operation mode (True when it lists none)."""
         modes = {c.get("operationMode") for c in self._capabilities(imei, address)}
         return not modes or mode in modes
+
+    def lists_mode(self, imei: str, address: int, mode: str) -> bool:
+        """Whether the heater explicitly lists this operation mode."""
+        return any(c.get("operationMode") == mode for c in self._capabilities(imei, address))
 
     @callback
     def async_schedule_refresh(self, delay: int) -> None:
@@ -180,6 +217,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         if self._cancel_refresh:
             self._cancel_refresh()
             self._cancel_refresh = None
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
         await super().async_shutdown()
 
 
