@@ -350,3 +350,31 @@ async def test_repair_issue_after_repeated_failures(hass, entry, cloud, freezer)
     set_heater_reply(cloud, heater())
     await tick(hass, freezer, 601)
     assert registry.async_get_issue(DOMAIN, issue_id) is None
+
+
+# --- pausing ----------------------------------------------------------------
+
+PAUSE = "date.van_pause_until"
+
+
+async def test_pause_until_skips_those_days_and_resumes_after(hass, scheduled, cloud):
+    entry, _ = scheduled
+    sched = entry.runtime_data.scheduler
+    await hass.services.async_call("date", "set_value",
+                                   {"entity_id": PAUSE, "date": WED.date().isoformat()},
+                                   blocking=True)
+    assert hass.states.get(PAUSE).state == WED.date().isoformat()
+    await sched.async_run(time(6, 30), at(6, 30))        # the last paused day
+    assert calls_to(cloud, "PUT", "/heaters/1") == []
+    assert sched.last_result == f"Paused until {WED.date().isoformat()}"
+    await sched.async_run(time(6, 30), at(6, 30, base=WED.replace(day=WED.day + 1)))
+    assert len(calls_to(cloud, "PUT", "/heaters/1")) == 1  # the day after runs
+
+
+async def test_pause_is_restored_after_a_restart(hass, scheduled, cloud):
+    entry, _ = scheduled
+    await hass.services.async_call("date", "set_value",
+                                   {"entity_id": PAUSE, "date": "2030-01-02"}, blocking=True)
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.paused_until.isoformat() == "2030-01-02"

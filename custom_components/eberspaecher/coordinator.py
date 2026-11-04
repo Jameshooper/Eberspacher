@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -91,6 +91,8 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.temperature_reads = 0
         # Failed updates in a row, for the "cloud unreachable" repair issue.
         self._failures = 0
+        # The schedules do nothing up to and including this day (the Pause until date).
+        self.paused_until: date | None = None
         self.learner = DepartureLearner(hass, entry.entry_id)
         self.scheduler = ScheduleManager(hass, self)
         self.work_scheduler = ScheduleManager(hass, self, LEG_WORK)

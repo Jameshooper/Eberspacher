@@ -42,6 +42,7 @@ Per device (found automatically) and per heater:
 | `switch` Ventilation | Same, but runs ventilation (fan only). Only created if the heater lists ventilation |
 | `switch` Schedule | Turns the automatic start schedule on or off (once per device) |
 | `number` Run time | Minutes the switch runs the heater (the heater's own min/max apply, 10–120 on the unit this was built on). Remembered across restarts |
+| `date` Pause until | The schedules do nothing up to and including this day, for example while the car is not used. Remembered across restarts (once per device) |
 | `sensor` Remaining run time | Minutes left in the current run |
 | `sensor` Status | Raw cloud state, e.g. `OFF`, `ACTIVATION_REQUESTED` (disabled by default) |
 | `sensor` Temperature | Last temperature the device reported |
@@ -115,7 +116,7 @@ get a "not needed" message at the last start time.
   heater's last reading is used (press **Request temperature** to refresh it). With no
   reading at all, the heater is not started and you get a "not started" message at the
   last start time.
-- **Pausing:** use the **Schedule** switch, for example on holiday.
+- **Pausing:** set the **Pause until** date for a few days without the car (both schedules skip up to and including that day and resume the next), or use the **Schedule** switch to turn it off until you turn it back on.
 - **Notifications:** a message when the heater starts, when starting fails, and when it is
   not needed. Leave the service empty for none.
 - **The longest run time must fit** between midnight and the ready-by time.

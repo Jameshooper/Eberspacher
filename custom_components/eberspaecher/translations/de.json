@@ -223,6 +223,11 @@
       "request_temperature": {
         "name": "Temperatur abfragen"
       }
+    },
+    "date": {
+      "pause_until": {
+        "name": "Pausiert bis"
+      }
     }
   },
   "exceptions": {

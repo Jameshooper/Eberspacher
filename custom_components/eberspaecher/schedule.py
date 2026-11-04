@@ -422,6 +422,11 @@ class ScheduleManager:
             return
         if self._last_start_date == local.date():
             return
+        paused = self.coordinator.paused_until
+        if paused is not None and local.date() <= paused:
+            self.last_result = text(self.hass, "result_paused", date=paused.isoformat())
+            self._notify_listeners()
+            return
         if self._away():
             self.last_result = text(self.hass, f"result_skipped_{self.leg}")
             self._notify_listeners()

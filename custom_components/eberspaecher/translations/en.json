@@ -223,6 +223,11 @@
       "request_temperature": {
         "name": "Request temperature"
       }
+    },
+    "date": {
+      "pause_until": {
+        "name": "Pause until"
+      }
     }
   },
   "exceptions": {

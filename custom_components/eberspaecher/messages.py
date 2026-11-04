@@ -33,6 +33,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_body": "The car heater has not run for {days} days. Run it for about 10 "
         "minutes so the fuel lines and pump stay in working order.",
         "prefix_work": "At work: ",
+        "result_paused": "Paused until {date}",
         "result_skipped_home": "Skipped: you were not at home",
         "result_skipped_work": "Skipped: your phone is at home",
         "plan_title": "Car ready time",
@@ -61,6 +62,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_body": "Die Standheizung lief seit {days} Tagen nicht. Lass sie etwa 10 "
         "Minuten laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben.",
         "prefix_work": "Bei der Arbeit: ",
+        "result_paused": "Pausiert bis {date}",
         "result_skipped_home": "Übersprungen: du warst nicht zu Hause",
         "result_skipped_work": "Übersprungen: dein Handy ist zu Hause",
         "plan_title": "Bereitzeit des Autos",
@@ -89,6 +91,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_body": "Bilvärmaren har inte körts på {days} dagar. Kör den i ungefär 10 "
         "minuter så att bränsleledningar och pump hålls i gott skick.",
         "prefix_work": "På jobbet: ",
+        "result_paused": "Pausad till {date}",
         "result_skipped_home": "Hoppade över: du var inte hemma",
         "result_skipped_work": "Hoppade över: din telefon är hemma",
         "plan_title": "Bilens klartid",
@@ -117,6 +120,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_body": "Autolämmitin ei ole käynyt {days} päivään. Käytä sitä noin 10 "
         "minuuttia, jotta polttoaineletkut ja pumppu pysyvät kunnossa.",
         "prefix_work": "Töissä: ",
+        "result_paused": "Tauolla {date} asti",
         "result_skipped_home": "Ohitettu: et ollut kotona",
         "result_skipped_work": "Ohitettu: puhelimesi on kotona",
         "plan_title": "Auton valmistumisaika",

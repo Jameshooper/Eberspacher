@@ -59,7 +59,7 @@ async def test_setup_creates_entities(hass, entry, cloud):
 async def test_unique_ids_are_stable_and_unique(hass, entry, cloud):
     await setup(hass, entry)
     ids = [e.unique_id for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)]
-    assert len(ids) == len(set(ids)) == 11
+    assert len(ids) == len(set(ids)) == 12
 
 
 async def test_auth_failure_at_setup_starts_reauth(hass, entry, aioclient_mock):

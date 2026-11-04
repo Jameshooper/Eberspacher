@@ -11,6 +11,7 @@ from .api import EberspaecherApi
 from .coordinator import EberspaecherCoordinator, idle_interval
 
 PLATFORMS: list[Platform] = [
+    Platform.DATE,
     Platform.SWITCH,
     Platform.NUMBER,
     Platform.SENSOR,

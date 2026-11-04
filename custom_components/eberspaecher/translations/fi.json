@@ -223,6 +223,11 @@
       "request_temperature": {
         "name": "Pyydä lämpötila"
       }
+    },
+    "date": {
+      "pause_until": {
+        "name": "Tauko asti"
+      }
     }
   },
   "exceptions": {

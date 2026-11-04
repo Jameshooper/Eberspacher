@@ -223,6 +223,11 @@
       "request_temperature": {
         "name": "Begär temperatur"
       }
+    },
+    "date": {
+      "pause_until": {
+        "name": "Pausa till"
+      }
     }
   },
   "exceptions": {
