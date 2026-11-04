@@ -44,6 +44,8 @@ MIN_SAMPLES = 3  # same weekdays needed before the learned time is trusted
 MAX_SHIFT = 120  # minutes the learned time may differ from the fixed one
 # Hours of the day in which a first connection counts as leaving home / leaving work.
 WINDOWS = {LEG_HOME: (4, 12), LEG_WORK: (13, 23)}
+# A phone often leaves the home zone a few minutes before it connects to the car.
+RECENTLY_HOME = timedelta(minutes=30)
 
 
 @dataclass(frozen=True)
@@ -71,17 +73,33 @@ class LearnConfig:
         )
 
 
-def classify(local: datetime, tracker_state: str | None) -> str | None:
+def classify(
+    local: datetime, tracker_state: str | None, recently_home: bool = False
+) -> str | None:
     """Whether a connection at this time and place is leaving home, leaving work or neither.
 
-    Leaving home is the morning with the phone at home. Leaving work is the afternoon
-    with the phone anywhere else, wherever work is.
+    Leaving home is the morning with the phone at home or just gone from home. Leaving
+    work is the afternoon with the phone anywhere else, wherever work is.
     """
     if not tracker_state:
         return None
-    kind = LEG_HOME if tracker_state.casefold() == "home" else LEG_WORK
+    home = recently_home or tracker_state.casefold() == "home"
+    kind = LEG_HOME if home else LEG_WORK
     first, last = WINDOWS[kind]
     return kind if first <= local.hour < last else None
+
+
+def _home_within(
+    tracker: list[tuple[datetime, str]], times: list[datetime], when: datetime
+) -> bool:
+    """Whether the phone was at home at any moment in the half hour up to `when`."""
+    start = when - RECENTLY_HOME
+    index = bisect_right(times, start) - 1
+    if index >= 0 and tracker[index][1].casefold() == "home":
+        return True
+    low = bisect_right(times, start)
+    high = bisect_right(times, when)
+    return any(state.casefold() == "home" for _, state in tracker[low:high])
 
 
 def samples_from_history(
@@ -106,7 +124,7 @@ def samples_from_history(
         index = bisect_right(times, when) - 1
         place = tracker[index][1] if index >= 0 else None
         local = when.astimezone(tz)
-        kind = classify(local, place)
+        kind = classify(local, place, _home_within(tracker, times, when))
         if kind is None:
             continue
         day = local.date().isoformat()
@@ -130,6 +148,7 @@ class DepartureLearner:
         self._samples: dict[str, dict[str, int]] = {LEG_HOME: {}, LEG_WORK: {}}
         self._backfilled: str | None = None
         self._unsub: Callable[[], None] | None = None
+        self._last_home: datetime | None = None  # when the phone was last seen at home
         self._listeners: list[Callable[[], None]] = []
 
     async def async_load(self) -> None:
@@ -170,8 +189,10 @@ class DepartureLearner:
         cfg = self.config
         if cfg.enabled and cfg.entity and cfg.tracker:
             self._unsub = async_track_state_change_event(
-                self.hass, [cfg.entity], self._async_changed
+                self.hass, [cfg.entity, cfg.tracker], self._async_changed
             )
+            if (self.tracker_state() or "").casefold() == "home":
+                self._last_home = dt_util.utcnow()
             self.hass.async_create_task(self.async_backfill())
         self._notify_listeners()
 
@@ -193,10 +214,23 @@ class DepartureLearner:
             return None
         return state.state
 
+    def recently_home(self, now: datetime | None = None) -> bool:
+        """Whether the phone is at home or left home within the last half hour."""
+        if (self.tracker_state() or "").casefold() == "home":
+            return True
+        if self._last_home is None:
+            return False
+        return (now or dt_util.utcnow()) - self._last_home <= RECENTLY_HOME
+
     @callback
     def _async_changed(self, event: Event) -> None:
         new = event.data.get("new_state")
         old = event.data.get("old_state")
+        if event.data.get("entity_id") == self.config.tracker:
+            # Remember the last moment at home, also when the phone has just left.
+            if old is not None and old.state.casefold() == "home":
+                self._last_home = dt_util.utcnow()
+            return
         if new is None or new.state.casefold() != self.config.state.casefold():
             return
         if old is not None and old.state.casefold() == new.state.casefold():
@@ -206,7 +240,7 @@ class DepartureLearner:
     @callback
     def record(self, local: datetime, tracker_state: str | None) -> None:
         """Keep this moment when it is the first of its kind that day."""
-        kind = classify(local, tracker_state)
+        kind = classify(local, tracker_state, self.recently_home())
         if kind is None:
             return
         day = local.date().isoformat()

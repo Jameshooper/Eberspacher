@@ -54,6 +54,23 @@ def test_classify(hour, place, expected):
     assert classify(local, place) == expected
 
 
+def test_a_phone_that_just_left_home_still_counts_as_leaving_home():
+    local = datetime(2026, 11, 4, 8, 5, tzinfo=UTC)
+    assert classify(local, "not_home", recently_home=True) == "home"
+    assert classify(datetime(2026, 11, 4, 14, 5, tzinfo=UTC), "not_home", recently_home=True) is None
+
+
+def test_history_counts_a_phone_that_left_home_minutes_before_connecting():
+    def t(hh, mm):
+        return datetime(2026, 11, 3, hh, mm, tzinfo=UTC)
+
+    signal = [(t(7, 0), "Built-in Speaker"), (t(8, 5), "CarPlay"), (t(9, 0), "Built-in Speaker")]
+    tracker = [(t(0, 0), "home"), (t(8, 0), "not_home")]   # left five minutes earlier
+    assert samples_from_history(signal, tracker, "carplay", UTC)["home"] == {"2026-11-03": 8 * 60 + 5}
+    tracker = [(t(0, 0), "home"), (t(7, 10), "not_home")]  # long gone: not leaving home
+    assert samples_from_history(signal, tracker, "carplay", UTC)["home"] == {}
+
+
 def test_history_gives_the_first_connection_of_each_morning_and_afternoon():
     def t(day, hh, mm):
         return datetime(2026, 11, day, hh, mm, tzinfo=UTC)
@@ -126,6 +143,17 @@ async def test_a_connection_at_home_in_the_morning_is_recorded_once(hass, learni
     hass.states.async_set(SIGNAL, "CarPlay")
     await hass.async_block_till_done()
     assert learner._samples["home"] == {"2026-11-04": 8 * 60 + 5}
+
+
+async def test_a_phone_that_just_left_home_is_still_leaving_home(hass, learning, freezer):
+    entry, _ = learning
+    freezer.move_to(WED.replace(hour=8, minute=0))
+    hass.states.async_set(TRACKER, "not_home")           # left home, connects a few minutes later
+    await hass.async_block_till_done()
+    freezer.move_to(WED.replace(hour=8, minute=4))
+    hass.states.async_set(SIGNAL, "CarPlay")
+    await hass.async_block_till_done()
+    assert entry.runtime_data.learner._samples["home"] == {"2026-11-04": 8 * 60 + 4}
 
 
 async def test_nothing_is_recorded_when_learning_is_off(hass, cloud):
