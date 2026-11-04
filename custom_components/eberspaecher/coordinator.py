@@ -20,6 +20,7 @@ from .api import (
     EberspaecherAuthError,
     EberspaecherConnectionError,
 )
+from .reminder import ReminderManager
 from .schedule import ScheduleManager
 from .const import (
     CALLS_CACHE_SECONDS,
@@ -89,6 +90,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         # Failed updates in a row, for the "cloud unreachable" repair issue.
         self._failures = 0
         self.scheduler = ScheduleManager(hass, self)
+        self.reminder = ReminderManager(hass, entry.entry_id)
 
     @property
     def _issue_id(self) -> str:
@@ -127,6 +129,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
 
         self._failures = 0
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
+        self.reminder.observe(result)
 
         heaters = [h for device in result.values() for h in device.heaters.values()]
         transitional = any(

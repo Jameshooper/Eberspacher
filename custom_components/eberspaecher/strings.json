@@ -53,7 +53,8 @@
           "polling": "Polling",
           "schedule": "Schedule",
           "heating_bands": "Heating bands",
-          "ventilation": "Summer ventilation"
+          "ventilation": "Summer ventilation",
+          "reminder": "Idle reminder"
         }
       },
       "polling": {
@@ -98,6 +99,14 @@
           "vent_above": "Ventilate at or above",
           "vent_runtime": "Ventilation run time"
         }
+      },
+      "reminder": {
+        "title": "Idle reminder",
+        "description": "A heater that sits unused for months should be run now and then so the fuel lines and pump stay in working order. When it has not run for this many days you get a message (through the notification service set under Schedule) and a notice under Repairs, repeated weekly until it runs.",
+        "data": {
+          "reminder_enabled": "Remind me",
+          "reminder_days": "Days without a run"
+        }
       }
     },
     "error": {
@@ -134,6 +143,10 @@
     "cloud_unreachable": {
       "title": "Eberspächer cloud unreachable",
       "description": "Home Assistant has not been able to reach myeberspaecher.com for several checks in a row. The last error was: {error}\\n\\nIf it keeps failing, check your internet and DNS settings, or whether the EasyStart Web service is down. The integration keeps trying and this notice goes away when it works again."
+    },
+    "heater_idle": {
+      "title": "Car heater has not run for a while",
+      "description": "The heater has not run for {days} days. Run it for about 10 minutes so the fuel lines and pump stay in working order. This notice goes away once it has run."
     }
   }
 }

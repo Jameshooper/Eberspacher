@@ -143,6 +143,8 @@ class EberspaecherRunSwitch(EberspaecherEntity, SwitchEntity):
             )
         except EberspaecherError as err:
             raise HomeAssistantError(f"Could not send the command: {err}") from err
+        if mode == MODE_HEATING:
+            self.coordinator.reminder.mark_heated()
         self._pending = mode == self._mode if mode != MODE_OFF else False
         self._pending_until = time.monotonic() + PENDING_TIMEOUT
         self._clear_pending_timer()

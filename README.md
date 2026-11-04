@@ -45,6 +45,7 @@ Per device (found automatically) and per heater:
 | `sensor` Remaining run time | Minutes left in the current run |
 | `sensor` Status | Raw cloud state, e.g. `OFF`, `ACTIVATION_REQUESTED` (disabled by default) |
 | `sensor` Temperature | Last temperature the device reported |
+| `sensor` Last heated | When Home Assistant last saw the heater run in heating mode (once per device) |
 | `button` Request temperature | Asks the device for a fresh reading |
 
 **Request temperature is manual on purpose.** It wakes the device, so it is not polled.
@@ -149,6 +150,20 @@ actions:
     target: { entity_id: switch.my_heater_heating }
     data: { runtime: 100 }
 ```
+
+## Idle reminder
+
+A heater that sits unused for months, such as over the summer, should be run now and then
+so the fuel lines and pump stay in working order. Home Assistant remembers when the heater
+last ran in heating mode (the **Last heated** sensor; ventilation does not count). Once it
+has been idle for 30 days you get a message through the notification service from the
+Schedule settings, and a notice under **Settings → Repairs**. The message repeats weekly
+until the heater runs, then the notice goes away.
+
+Turn it off or change the number of days under **Configure → Idle reminder**. It counts from
+the day the integration first saw the heater, so there is no false alarm right after an update.
+It only sees runs that Home Assistant started, or that were running at a status check, so a
+short run started from the app and finished between checks may not be noticed.
 
 ## Diagnostics and repairs
 

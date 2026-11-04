@@ -8,6 +8,8 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfTemperature, UnitOfTime
+from datetime import datetime
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -29,6 +31,10 @@ async def async_setup_entry(
             entities.append(EberspaecherStatusSensor(coordinator, imei, address))
             entities.append(EberspaecherRemainingSensor(coordinator, imei, address))
             entities.append(EberspaecherTemperatureSensor(coordinator, imei, address))
+    # The reminder is one per account, so its sensor goes on the first device only.
+    first = next(iter(coordinator.data), None)
+    if first is not None:
+        entities.append(EberspaecherLastHeatedSensor(coordinator, first))
     async_add_entities(entities)
 
 
@@ -79,3 +85,24 @@ class EberspaecherTemperatureSensor(EberspaecherEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         return parse_temperature(self.heater.get("lastMeasuredTemperature"))
+
+
+class EberspaecherLastHeatedSensor(EberspaecherEntity, SensorEntity):
+    """When the heater last ran in heating mode, as seen by Home Assistant."""
+
+    _attr_name = "Last heated"
+    _attr_icon = "mdi:history"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator, imei: str) -> None:
+        super().__init__(coordinator, imei, None, "last_heated")
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.reminder.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.coordinator.reminder.last_heated

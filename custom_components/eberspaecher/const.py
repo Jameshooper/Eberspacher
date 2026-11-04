@@ -59,4 +59,9 @@ CONF_VENT_ENABLED = "vent_enabled"
 CONF_VENT_ABOVE = "vent_above"
 CONF_VENT_RUNTIME = "vent_runtime"
 
+# Reminder to run the heater now and then (stored in the config entry options).
+CONF_REMINDER_ENABLED = "reminder_enabled"
+CONF_REMINDER_DAYS = "reminder_days"
+DEFAULT_REMINDER_DAYS = 30
+
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]

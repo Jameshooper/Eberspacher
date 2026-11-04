@@ -44,6 +44,8 @@ from .const import (
     CONF_NO_HEAT_ABOVE,
     CONF_NOTIFY_SERVICE,
     CONF_READY_BY,
+    CONF_REMINDER_DAYS,
+    CONF_REMINDER_ENABLED,
     CONF_SCHEDULE_ENABLED,
     CONF_TEMPERATURE_ENTITY,
     CONF_VENT_ABOVE,
@@ -57,6 +59,7 @@ from .const import (
     IDLE_INTERVAL_CHOICES,
     WEEKDAYS,
 )
+from .reminder import ReminderConfig
 from .schedule import ScheduleConfig, longest_runtime_fits
 
 _LOGGER = logging.getLogger(__name__)
@@ -185,7 +188,7 @@ class EberspaecherOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["polling", "schedule", "heating_bands", "ventilation"],
+            menu_options=["polling", "schedule", "heating_bands", "ventilation", "reminder"],
         )
 
     async def async_step_polling(
@@ -326,3 +329,32 @@ class EberspaecherOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="ventilation", data_schema=schema, errors=errors
         )
+
+    async def async_step_reminder(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Remind to run the heater when it has been idle for a long time."""
+        if user_input is not None:
+            return self._save(
+                **{
+                    CONF_REMINDER_ENABLED: bool(user_input[CONF_REMINDER_ENABLED]),
+                    CONF_REMINDER_DAYS: int(user_input[CONF_REMINDER_DAYS]),
+                }
+            )
+
+        current = ReminderConfig.from_options(dict(self.config_entry.options))
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_REMINDER_ENABLED, default=current.enabled): BooleanSelector(),
+                vol.Required(CONF_REMINDER_DAYS, default=current.days): NumberSelector(
+                    NumberSelectorConfig(
+                        min=1,
+                        max=365,
+                        step=1,
+                        unit_of_measurement="days",
+                        mode=NumberSelectorMode.BOX,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="reminder", data_schema=schema)

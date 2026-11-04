@@ -43,7 +43,7 @@ from .const import (
     STATE_ON,
     WEEKDAYS,
 )
-from .util import parse_temperature
+from .util import async_notify, parse_temperature
 
 if TYPE_CHECKING:
     from .coordinator import EberspaecherCoordinator
@@ -354,18 +354,4 @@ class ScheduleManager:
         return started, errors
 
     async def _notify(self, title: str, message: str) -> None:
-        service = (self.config.notify_service or "").strip()
-        if not service:
-            return
-        domain, _, name = service.partition(".")
-        if not name:
-            domain, name = "notify", service
-        if not self.hass.services.has_service(domain, name):
-            _LOGGER.warning("Notify service %s.%s does not exist", domain, name)
-            return
-        try:
-            await self.hass.services.async_call(
-                domain, name, {"title": title, "message": message}, blocking=True
-            )
-        except HomeAssistantError as err:
-            _LOGGER.warning("Could not send the schedule notification: %s", err)
+        await async_notify(self.hass, self.config.notify_service, title, message)
