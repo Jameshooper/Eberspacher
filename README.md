@@ -88,25 +88,12 @@ deliberately stays gentle.
 The integration can start the heater by itself so the car is ready at a set time. The
 colder it is, the earlier it starts.
 
-**On the device page** (under Controls and Configuration) you get the **Schedule** switch
-and these settings, which you can also use in dashboards and automations:
-
-| Entity | Setting |
-|---|---|
-| `time` Ready by | When the car should be ready |
-| `number` No heating above | Above this temperature the heater is not started |
-| `number` Mild run time | Run time just below that |
-| `number` Cold at or below, Cold run time | Next band down |
-| `number` Very cold at or below, Very cold run time | Coldest band |
-| `switch` Summer ventilation, `number` Ventilate at or above, Ventilation run time | The optional hot-weather rule (only if the heater lists ventilation) |
-
+The **Schedule** switch on the device page turns it on or off. Everything else is set under
+**Settings → Devices & services → Eberspächer EasyStart Web → Configure → Schedule**: the days,
+the ready-by time, the outside temperature sensor and the notification service (for example
+`notify.mobile_app_your_phone`). **Heating bands** holds the temperatures and run times, and **Summer ventilation** the hot-weather rule.
 Settings that contradict each other are refused with a message, for example a Cold
-temperature above No heating above. If that happens, change the other value first.
-
-**Under Settings → Devices & services → Eberspächer EasyStart Web → Configure** you set the
-things that are not entities: the days, the outside temperature sensor and the
-notification service (for example `notify.mobile_app_your_phone`). The same menu also
-holds every other schedule setting in forms.
+temperature above No heating above.
 
 Defaults, ready by 08:10 on Monday to Friday:
 
@@ -135,8 +122,8 @@ get a "not needed" message at the last start time.
 
 If your heater supports ventilation, a **Ventilation** switch appears next to Heating. It
 runs the fan without heating, using the same **Run time** number (kept within the
-ventilation limits the heater reports). In the schedule menu you can turn on
-**Summer ventilation**: when the temperature is at or above a chosen value (25 °C by
+ventilation limits the heater reports). In the Configure menu, **Summer ventilation**
+turns on a rule: when the temperature is at or above a chosen value (25 °C by
 default), the schedule runs ventilation for the chosen time (20 minutes by default) so the
 car is cooler when you get in. It uses the same ready-by time and days. What ventilation
 does depends on the heater model, so try it by hand first.

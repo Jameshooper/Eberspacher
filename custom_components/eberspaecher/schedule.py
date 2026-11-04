@@ -17,8 +17,7 @@ from typing import Any, TYPE_CHECKING
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
@@ -191,17 +190,6 @@ def validate(cfg: ScheduleConfig) -> str | None:
     if not longest_runtime_fits(cfg):
         return "runtime_too_long"
     return None
-
-
-def async_set_schedule_options(
-    hass: HomeAssistant, entry: ConfigEntry, **changes: Any
-) -> None:
-    """Save changed schedule options, refusing settings that contradict each other."""
-    options = {**entry.options, **changes}
-    error = validate(ScheduleConfig.from_options(options))
-    if error:
-        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=error)
-    hass.config_entries.async_update_entry(entry, options=options)
 
 
 class ScheduleManager:

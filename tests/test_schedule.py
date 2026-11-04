@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime, time, timezone
 
 import pytest
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -272,69 +271,6 @@ async def test_wakeups_are_registered_and_removed(hass, scheduled):
     assert len(scheduler._unsubs) == 3
     await hass.config_entries.async_unload(entry.entry_id)
     assert scheduler._unsubs == []
-
-
-# --- settings on the device page --------------------------------------------
-
-async def set_number(hass, entity_id, value):
-    await hass.services.async_call("number", "set_value",
-                                   {"entity_id": entity_id, "value": value}, blocking=True)
-
-
-async def test_settings_entities_show_the_defaults(hass, entry, cloud):
-    await setup(hass, entry)
-    assert hass.states.get("time.van_ready_by").state == "08:10:00"
-    assert float(hass.states.get("number.van_no_heating_above").state) == 10
-    assert float(hass.states.get("number.van_cold_at_or_below").state) == 0
-    assert float(hass.states.get("number.van_very_cold_at_or_below").state) == -10
-    assert float(hass.states.get("number.van_mild_run_time").state) == 40
-    assert float(hass.states.get("number.van_very_cold_run_time").state) == 100
-    assert hass.states.get("switch.van_summer_ventilation").state == "off"
-
-
-async def test_settings_are_saved_in_the_options_and_applied(hass, entry, cloud):
-    await setup(hass, entry)
-    await set_number(hass, "number.van_very_cold_run_time", 90)
-    await hass.services.async_call("time", "set_value",
-                                   {"entity_id": "time.van_ready_by", "time": "07:45:00"}, blocking=True)
-    await hass.services.async_call("switch", "turn_on",
-                                   {"entity_id": "switch.van_summer_ventilation"}, blocking=True)
-    await hass.async_block_till_done()
-    assert entry.options["very_cold_runtime"] == 90
-    assert entry.options["ready_by"] == "07:45:00"
-    cfg = entry.runtime_data.scheduler.config
-    assert cfg.very_cold_runtime == 90 and cfg.vent_enabled
-    assert hass.states.get("time.van_ready_by").state == "07:45:00"
-    assert float(hass.states.get("number.van_very_cold_run_time").state) == 90
-
-
-async def test_settings_changes_do_not_poll_the_cloud(hass, entry, cloud):
-    await setup(hass, entry)
-    reads = len(calls_to(cloud, "GET", "/heaters"))
-    await set_number(hass, "number.van_mild_run_time", 35)
-    await hass.async_block_till_done()
-    assert len(calls_to(cloud, "GET", "/heaters")) == reads
-
-
-@pytest.mark.parametrize(("entity", "value"), [
-    ("number.van_cold_at_or_below", 12),         # above No heating above
-    ("number.van_very_cold_at_or_below", 2),     # above Cold at or below
-    ("number.van_very_cold_run_time", 600),      # starts before midnight
-])
-async def test_contradicting_settings_are_refused(hass, entry, cloud, entity, value):
-    await setup(hass, entry)
-    before = dict(entry.options)
-    with pytest.raises(ServiceValidationError):
-        await set_number(hass, entity, value)
-    assert dict(entry.options) == before
-
-
-async def test_ventilation_settings_hidden_without_the_capability(hass, entry, aioclient_mock):
-    set_heater_reply(aioclient_mock, heater(capabilities=[{"operationMode": "HEATING"}]))
-    await setup(hass, entry)
-    assert hass.states.get("switch.van_summer_ventilation") is None
-    assert hass.states.get("number.van_ventilate_at_or_above") is None
-    assert hass.states.get("number.van_mild_run_time") is not None
 
 
 # --- options flow -----------------------------------------------------------

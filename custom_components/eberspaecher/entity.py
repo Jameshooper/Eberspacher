@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -55,25 +53,3 @@ class EberspaecherEntity(CoordinatorEntity[EberspaecherCoordinator]):
         if device is None or self._address is None:
             return {}
         return device.heaters.get(self._address, {})
-
-
-class EberspaecherScheduleEntity(EberspaecherEntity):
-    """A schedule setting shown on the device page; the value lives in the entry options."""
-
-    _attr_entity_category = EntityCategory.CONFIG
-
-    def __init__(
-        self, coordinator: EberspaecherCoordinator, entry: ConfigEntry, imei: str, key: str
-    ) -> None:
-        super().__init__(coordinator, imei, None, key)
-        self._entry = entry
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            self.coordinator.scheduler.async_add_listener(self.async_write_ha_state)
-        )
-
-    @property
-    def _config(self):
-        return self.coordinator.scheduler.config
