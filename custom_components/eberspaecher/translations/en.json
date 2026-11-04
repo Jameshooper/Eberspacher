@@ -135,5 +135,16 @@
       "title": "Eberspächer cloud unreachable",
       "description": "Home Assistant has not been able to reach myeberspaecher.com for several checks in a row. The last error was: {error}\\n\\nIf it keeps failing, check your internet and DNS settings, or whether the EasyStart Web service is down. The integration keeps trying and this notice goes away when it works again."
     }
+  },
+  "exceptions": {
+    "bands_order": {
+      "message": "The temperatures must go from warm to cold: No heating above, then Cold at or below, then Very cold at or below"
+    },
+    "vent_below_heating": {
+      "message": "Ventilation must start at a higher temperature than No heating above"
+    },
+    "runtime_too_long": {
+      "message": "The longest run time is longer than the time between midnight and the ready-by time"
+    }
   }
 }

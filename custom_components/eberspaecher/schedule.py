@@ -17,7 +17,8 @@ from typing import Any, TYPE_CHECKING
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
@@ -179,6 +180,28 @@ def longest_runtime_fits(cfg: ScheduleConfig) -> bool:
 def start_times(cfg: ScheduleConfig) -> list[time]:
     """All wake-up times, earliest first."""
     return sorted({start_time(cfg, r) for r in possible_runtimes(cfg)})
+
+
+def validate(cfg: ScheduleConfig) -> str | None:
+    """An error key when the settings do not make sense together, else None."""
+    if not cfg.no_heat_above > cfg.cold_below > cfg.very_cold_below:
+        return "bands_order"
+    if cfg.vent_enabled and cfg.vent_above <= cfg.no_heat_above:
+        return "vent_below_heating"
+    if not longest_runtime_fits(cfg):
+        return "runtime_too_long"
+    return None
+
+
+def async_set_schedule_options(
+    hass: HomeAssistant, entry: ConfigEntry, **changes: Any
+) -> None:
+    """Save changed schedule options, refusing settings that contradict each other."""
+    options = {**entry.options, **changes}
+    error = validate(ScheduleConfig.from_options(options))
+    if error:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=error)
+    hass.config_entries.async_update_entry(entry, options=options)
 
 
 class ScheduleManager:

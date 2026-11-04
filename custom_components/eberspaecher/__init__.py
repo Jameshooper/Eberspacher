@@ -15,6 +15,7 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SENSOR,
     Platform.BUTTON,
+    Platform.TIME,
 ]
 
 EberspaecherConfigEntry = ConfigEntry[EberspaecherCoordinator]
@@ -38,11 +39,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry)
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> None:
-    """Apply a changed polling option without a reload."""
+    """Apply changed options without a reload."""
     coordinator = entry.runtime_data
-    coordinator.idle_interval = idle_interval(entry)
     coordinator.scheduler.async_configure(dict(entry.options))
-    await coordinator.async_request_refresh()
+    interval = idle_interval(entry)
+    if interval != coordinator.idle_interval:
+        coordinator.idle_interval = interval
+        await coordinator.async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> bool:

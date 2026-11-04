@@ -21,6 +21,7 @@ from . import EberspaecherConfigEntry
 from .api import EberspaecherError
 from .const import (
     CONF_SCHEDULE_ENABLED,
+    CONF_VENT_ENABLED,
     MODE_HEATING,
     MODE_OFF,
     MODE_VENTILATION,
@@ -28,8 +29,8 @@ from .const import (
     STATE_ON,
 )
 from .coordinator import EberspaecherCoordinator
-from .entity import EberspaecherEntity
-from .schedule import start_times
+from .entity import EberspaecherEntity, EberspaecherScheduleEntity
+from .schedule import async_set_schedule_options, start_times
 
 SERVICE_START = "start_heating"
 PENDING_TIMEOUT = 90  # seconds to show the requested state while waiting for the cloud
@@ -49,9 +50,15 @@ async def async_setup_entry(
             # Only offer ventilation when the heater says it can do it.
             if coordinator.lists_mode(imei, address, MODE_VENTILATION):
                 entities.append(EberspaecherVentilationSwitch(coordinator, imei, address))
-    entities.extend(
-        EberspaecherScheduleSwitch(coordinator, entry, imei) for imei in coordinator.data
-    )
+    # The schedule is one per account, so its switches go on the first device only.
+    first = next(iter(coordinator.data), None)
+    if first is not None:
+        entities.append(EberspaecherScheduleSwitch(coordinator, entry, first))
+        if any(
+            coordinator.lists_mode(first, address, MODE_VENTILATION)
+            for address in coordinator.data[first].heaters
+        ):
+            entities.append(EberspaecherSummerVentilationSwitch(coordinator, entry, first))
     async_add_entities(entities)
 
     async_get_current_platform().async_register_entity_service(
@@ -250,3 +257,25 @@ class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._async_set(False)
+
+
+class EberspaecherSummerVentilationSwitch(EberspaecherScheduleEntity, SwitchEntity):
+    """Whether the schedule ventilates instead of heating when it is hot."""
+
+    _attr_name = "Summer ventilation"
+    _attr_icon = "mdi:weather-sunny"
+
+    def __init__(
+        self, coordinator: EberspaecherCoordinator, entry: ConfigEntry, imei: str
+    ) -> None:
+        super().__init__(coordinator, entry, imei, "schedule_vent_enabled")
+
+    @property
+    def is_on(self) -> bool:
+        return self._config.vent_enabled
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        async_set_schedule_options(self.hass, self._entry, **{CONF_VENT_ENABLED: True})
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        async_set_schedule_options(self.hass, self._entry, **{CONF_VENT_ENABLED: False})

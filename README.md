@@ -86,14 +86,27 @@ deliberately stays gentle.
 ## Automatic start schedule
 
 The integration can start the heater by itself so the car is ready at a set time. The
-colder it is, the earlier it starts. Set it up under **Settings → Devices & services →
-Eberspächer EasyStart Web → Configure**:
+colder it is, the earlier it starts.
 
-| Menu item | What you set |
+**On the device page** (under Controls and Configuration) you get the **Schedule** switch
+and these settings, which you can also use in dashboards and automations:
+
+| Entity | Setting |
 |---|---|
-| Schedule | On/off, the **ready-by** time, the days, an outside temperature sensor and an optional notification service (for example `notify.mobile_app_your_phone`) |
-| Heating bands | The temperatures and run time for each band |
-| Summer ventilation | Optional: ventilate instead of heat when it is warm |
+| `time` Ready by | When the car should be ready |
+| `number` No heating above | Above this temperature the heater is not started |
+| `number` Mild run time | Run time just below that |
+| `number` Cold at or below, Cold run time | Next band down |
+| `number` Very cold at or below, Very cold run time | Coldest band |
+| `switch` Summer ventilation, `number` Ventilate at or above, Ventilation run time | The optional hot-weather rule (only if the heater lists ventilation) |
+
+Settings that contradict each other are refused with a message, for example a Cold
+temperature above No heating above. If that happens, change the other value first.
+
+**Under Settings → Devices & services → Eberspächer EasyStart Web → Configure** you set the
+things that are not entities: the days, the outside temperature sensor and the
+notification service (for example `notify.mobile_app_your_phone`). The same menu also
+holds every other schedule setting in forms.
 
 Defaults, ready by 08:10 on Monday to Friday:
 
