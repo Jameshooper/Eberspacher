@@ -41,3 +41,26 @@ def test_same_keys_and_placeholders(code):
         assert set(re.findall(r"{(\w+)}", other[key])) == set(re.findall(r"{(\w+)}", text)), (
             f"{code}: placeholders differ in {key}"
         )
+
+
+# --- texts the integration builds itself ------------------------------------
+
+from custom_components.eberspaecher.messages import MESSAGES, text  # noqa: E402
+
+
+@pytest.mark.parametrize("code", ["de", "sv", "fi"])
+def test_every_message_is_translated_with_the_same_placeholders(code):
+    assert MESSAGES[code].keys() == MESSAGES["en"].keys()
+    for key, english in MESSAGES["en"].items():
+        assert set(re.findall(r"{(\w+)}", MESSAGES[code][key])) == set(
+            re.findall(r"{(\w+)}", english)
+        ), f"{code}: placeholders differ in {key}"
+
+
+async def test_text_follows_the_home_assistant_language(hass):
+    hass.config.language = "fi"
+    assert "päivään" in text(hass, "idle_body", days=40)
+    hass.config.language = "sv-SE"                      # a regional variant
+    assert "dagar" in text(hass, "idle_body", days=40)
+    hass.config.language = "fr"                         # not translated: English
+    assert "has not run for 40 days" in text(hass, "idle_body", days=40)

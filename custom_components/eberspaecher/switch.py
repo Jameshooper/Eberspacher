@@ -21,6 +21,7 @@ from . import EberspaecherConfigEntry
 from .api import EberspaecherError
 from .const import (
     CONF_SCHEDULE_ENABLED,
+    DOMAIN,
     MODE_HEATING,
     MODE_OFF,
     MODE_VENTILATION,
@@ -142,7 +143,11 @@ class EberspaecherRunSwitch(EberspaecherEntity, SwitchEntity):
                 self._imei, self._heater_address, mode, runtime
             )
         except EberspaecherError as err:
-            raise HomeAssistantError(f"Could not send the command: {err}") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
         if mode == MODE_HEATING:
             self.coordinator.reminder.mark_heated()
         self._pending = mode == self._mode if mode != MODE_OFF else False
@@ -171,10 +176,16 @@ class EberspaecherRunSwitch(EberspaecherEntity, SwitchEntity):
             runtime = min(max(runtime, low), high)
         elif not low <= runtime <= high:
             raise ServiceValidationError(
-                f"Run time must be between {low} and {high} minutes for this heater"
+                translation_domain=DOMAIN,
+                translation_key="runtime_range",
+                translation_placeholders={"low": str(low), "high": str(high)},
             )
         if not self.coordinator.supports_mode(self._imei, self._heater_address, mode):
-            raise ServiceValidationError(f"This heater does not support {mode}")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="mode_unsupported",
+                translation_placeholders={"mode": mode},
+            )
         await self._async_send(mode, runtime)
 
     async def async_turn_on(self, **kwargs: Any) -> None:

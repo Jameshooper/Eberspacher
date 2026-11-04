@@ -43,6 +43,7 @@ from .const import (
     STATE_ON,
     WEEKDAYS,
 )
+from .messages import text
 from .util import async_notify, parse_temperature
 
 if TYPE_CHECKING:
@@ -252,8 +253,8 @@ class ScheduleManager:
 
         return _handler
 
-    def _temperature(self) -> tuple[float | None, str]:
-        """The outside temperature and where it came from."""
+    def _temperature(self) -> tuple[float | None, str | None]:
+        """The outside temperature and the sensor it came from (None: the heater's reading)."""
         cfg = self.config
         if cfg.temperature_entity:
             state = self.hass.states.get(cfg.temperature_entity)
@@ -270,8 +271,8 @@ class ScheduleManager:
             for heater in device.heaters.values():
                 value = parse_temperature(heater.get("lastMeasuredTemperature"))
                 if value is not None:
-                    return value, "the heater's last reading"
-        return None, "no reading"
+                    return value, None
+        return None, None
 
     async def async_run(self, at: time, now: datetime) -> None:
         """One wake-up at start time `at`."""
@@ -287,42 +288,54 @@ class ScheduleManager:
         if action is None:
             if at == start_times(cfg)[-1]:
                 if temperature is None:
-                    self.last_result = "Not started: no temperature reading"
+                    self.last_result = text(self.hass, "result_no_reading")
                     await self._notify(
-                        "Car heater not started",
-                        "There is no temperature reading, so the schedule did not "
-                        "start the heater. Check the temperature sensor.",
+                        text(self.hass, "no_reading_title"),
+                        text(self.hass, "no_reading_body"),
                     )
                 else:
-                    self.last_result = f"Not needed ({temperature:g} °C)"
+                    temp = f"{temperature:g}"
+                    self.last_result = text(self.hass, "result_not_needed", temp=temp)
                     await self._notify(
-                        "Car heater not needed today",
-                        f"It is {temperature:g} °C, so the heater was not started.",
+                        text(self.hass, "not_needed_title"),
+                        text(self.hass, "not_needed_body", temp=temp),
                     )
                 self._notify_listeners()
             return
         if start_time(cfg, action.runtime) != at:
             return
 
-        reading = f"{temperature:g} °C from {source}."
-        label = "Ventilation" if action.mode == MODE_VENTILATION else "Heating"
-        ready = cfg.ready_by.strftime("%H:%M")
+        temp = f"{temperature:g}"
+        if source:
+            reading = text(self.hass, "reading_sensor", temp=temp, source=source)
+        else:
+            reading = text(self.hass, "reading_heater", temp=temp)
+        kind = "ventilation" if action.mode == MODE_VENTILATION else "heating"
 
         started, failed = await self._start_all(action)
         if failed and not started:
-            self.last_result = f"Failed: {failed[0]}"
+            self.last_result = text(self.hass, "result_failed", reason=failed[0])
             await self._notify(
-                "Car heater failed to start",
-                f"{failed[0]}. Start it from the EasyStart app or the car.",
+                text(self.hass, "failed_title"),
+                text(self.hass, "failed_body", reason=failed[0]),
             )
         elif started:
             self._last_start_date = local.date()
-            self.last_result = (
-                f"{label} {action.runtime} min at {local.strftime('%H:%M')}"
+            self.last_result = text(
+                self.hass,
+                f"result_started_{kind}",
+                minutes=action.runtime,
+                time=local.strftime("%H:%M"),
             )
             await self._notify(
-                f"Car {label.lower()} started",
-                f"{label} for {action.runtime} min, ready by {ready}. {reading}",
+                text(self.hass, f"started_title_{kind}"),
+                text(
+                    self.hass,
+                    f"started_body_{kind}",
+                    minutes=action.runtime,
+                    ready=cfg.ready_by.strftime("%H:%M"),
+                    reading=reading,
+                ),
             )
         self._notify_listeners()
 

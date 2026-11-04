@@ -185,5 +185,19 @@
         "name": "Begär temperatur"
       }
     }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "Det gick inte att skicka kommandot: {error}"
+    },
+    "temperature_failed": {
+      "message": "Det gick inte att begära temperaturen: {error}"
+    },
+    "runtime_range": {
+      "message": "Gångtiden måste vara mellan {low} och {high} minuter för den här värmaren"
+    },
+    "mode_unsupported": {
+      "message": "Den här värmaren stöder inte {mode}"
+    }
   }
 }

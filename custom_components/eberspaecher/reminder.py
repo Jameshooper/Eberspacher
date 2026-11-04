@@ -29,6 +29,7 @@ from .const import (
     MODE_VENTILATION,
     STATE_ON,
 )
+from .messages import text
 from .util import async_notify
 
 if TYPE_CHECKING:
@@ -199,7 +200,6 @@ class ReminderManager:
         await async_notify(
             self.hass,
             self.config.notify_service,
-            "Car heater has not run for a while",
-            f"The car heater has not run for {days} days. Run it for about 10 minutes "
-            "so the fuel lines and pump stay in working order.",
+            text(self.hass, "idle_title"),
+            text(self.hass, "idle_body", days=days),
         )

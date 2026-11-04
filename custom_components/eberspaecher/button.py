@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
 from .api import EberspaecherError
-from .const import REFRESH_DELAY_TEMPERATURE, SETTLE_MAX_READS
+from .const import DOMAIN, REFRESH_DELAY_TEMPERATURE, SETTLE_MAX_READS
 from .entity import EberspaecherEntity
 
 
@@ -43,6 +43,10 @@ class EberspaecherRequestTemperature(EberspaecherEntity, ButtonEntity):
         try:
             await self.coordinator.api.async_request_temperature(self._imei)
         except EberspaecherError as err:
-            raise HomeAssistantError(f"Could not request the temperature: {err}") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="temperature_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
         self.coordinator.temperature_reads = SETTLE_MAX_READS
         self.coordinator.async_schedule_refresh(REFRESH_DELAY_TEMPERATURE)

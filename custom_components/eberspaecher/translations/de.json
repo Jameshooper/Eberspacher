@@ -185,5 +185,19 @@
         "name": "Temperatur abfragen"
       }
     }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "Der Befehl konnte nicht gesendet werden: {error}"
+    },
+    "temperature_failed": {
+      "message": "Die Temperatur konnte nicht abgefragt werden: {error}"
+    },
+    "runtime_range": {
+      "message": "Die Laufzeit muss für diese Standheizung zwischen {low} und {high} Minuten liegen"
+    },
+    "mode_unsupported": {
+      "message": "Diese Standheizung unterstützt {mode} nicht"
+    }
   }
 }

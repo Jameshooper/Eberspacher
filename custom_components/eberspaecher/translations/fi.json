@@ -185,5 +185,19 @@
         "name": "Pyydä lämpötila"
       }
     }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "Komentoa ei voitu lähettää: {error}"
+    },
+    "temperature_failed": {
+      "message": "Lämpötilaa ei voitu pyytää: {error}"
+    },
+    "runtime_range": {
+      "message": "Käyntiajan on oltava tälle lämmittimelle {low}–{high} minuuttia"
+    },
+    "mode_unsupported": {
+      "message": "Tämä lämmitin ei tue tilaa {mode}"
+    }
   }
 }

@@ -175,8 +175,8 @@ short run started from the app and finished between checks may not be noticed.
 ## Languages
 
 English, German, Swedish and Finnish. Home Assistant uses the language of your profile for
-the settings menus, entity names and notices. Notification messages the integration sends
-(schedule and reminder) are in English.
+the settings menus, entity names and notices. The notifications the integration sends (schedule and
+reminder) and the schedule's last result use the same language.
 
 ## Known limits
 
