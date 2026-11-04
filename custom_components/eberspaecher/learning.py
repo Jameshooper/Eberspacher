@@ -46,6 +46,8 @@ MAX_SHIFT = 120  # minutes the learned time may differ from the fixed one
 WINDOWS = {LEG_HOME: (4, 12), LEG_WORK: (13, 23)}
 # A phone often leaves the home zone a few minutes before it connects to the car.
 RECENTLY_HOME = timedelta(minutes=30)
+# Bump when the rules for reading history change, so existing history is read again.
+HISTORY_RULES = "2"
 
 
 @dataclass(frozen=True)
@@ -279,7 +281,7 @@ class DepartureLearner:
     async def async_backfill(self) -> None:
         """Learn from the history Home Assistant already has, once per setup of the options."""
         cfg = self.config
-        key = f"{cfg.entity}|{cfg.state}|{cfg.tracker}"
+        key = f"{HISTORY_RULES}|{cfg.entity}|{cfg.state}|{cfg.tracker}"
         if not (cfg.entity and cfg.tracker) or self._backfilled == key:
             return
         end = dt_util.utcnow()

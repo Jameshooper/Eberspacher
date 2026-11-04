@@ -248,7 +248,7 @@ async def test_backfill_learns_from_recorded_history(hass, learning, monkeypatch
     entry, _ = learning
     learner = entry.runtime_data.learner
     learner._samples = {"home": {}, "work": {}}
-    learner._backfilled = None
+    learner._backfilled = "1|old|rules"
 
     async def fake(start, end, entity_ids):
         return {
