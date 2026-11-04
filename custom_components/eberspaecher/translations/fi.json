@@ -52,7 +52,7 @@
         "menu_options": {
           "polling": "Tilan luku",
           "schedule": "Aikataulu",
-          "heating_bands": "Lämmitysportaat",
+          "heating_bands": "Lämmitystasot",
           "ventilation": "Kesätuuletus",
           "reminder": "Muistutus käyttämättömyydestä"
         }
@@ -66,7 +66,7 @@
       },
       "schedule": {
         "title": "Aikataulu",
-        "description": "Käynnistä lämmitin automaattisesti, jotta auto on valmis tiettyyn aikaan mennessä. Mitä kylmempi on, sitä aiemmin se käynnistyy (portaat asetetaan kohdassa Lämmitysportaat). Ilman lämpötila-anturia käytetään lämmittimen omaa viimeisintä lukemaa.",
+        "description": "Käynnistä lämmitin automaattisesti, jotta auto on valmis tiettyyn aikaan mennessä. Mitä kylmempi on, sitä aiemmin se käynnistyy (tasot asetetaan kohdassa Lämmitystasot). Ilman lämpötila-anturia käytetään lämmittimen omaa viimeisintä lukemaa.",
         "data": {
           "schedule_enabled": "Aikataulu päällä",
           "ready_by": "Auto valmiina klo",
@@ -80,8 +80,8 @@
         }
       },
       "heating_bands": {
-        "title": "Lämmitysportaat",
-        "description": "Ensimmäisen lämpötilan yläpuolella lämmitintä ei käynnistetä. Jokaisella alla olevalla portaalla on oma käyntiaikansa ja oma käynnistysaikansa, joka lasketaan valmis-kellonajasta.",
+        "title": "Lämmitystasot",
+        "description": "Ensimmäisen lämpötilan yläpuolella lämmitintä ei käynnistetä. Jokaisella alla olevalla tasolla on oma käyntiaikansa ja oma käynnistysaikansa, joka lasketaan valmis-kellonajasta.",
         "data": {
           "no_heat_above": "Ei lämmitystä yli",
           "mild_runtime": "Leuto: käyntiaika",
