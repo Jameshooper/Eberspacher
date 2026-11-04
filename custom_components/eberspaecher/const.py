@@ -64,4 +64,23 @@ CONF_REMINDER_ENABLED = "reminder_enabled"
 CONF_REMINDER_DAYS = "reminder_days"
 DEFAULT_REMINDER_DAYS = 30
 
+# Learning when you leave (stored in the config entry options).
+CONF_LEARN_ENABLED = "learn_enabled"
+CONF_LEARN_ENTITY = "learn_entity"
+CONF_LEARN_STATE = "learn_state"
+CONF_LEARN_TRACKER = "learn_tracker"
+CONF_LEARN_MARGIN = "learn_margin"
+DEFAULT_LEARN_STATE = "CarPlay"
+DEFAULT_LEARN_MARGIN = 5
+
+# The second schedule: warm the car before leaving work.
+CONF_WORK_ENABLED = "work_enabled"
+CONF_WORK_READY_BY = "work_ready_by"
+CONF_WORK_WEEKDAYS = "work_weekdays"
+CONF_WORK_TEMPERATURE_ENTITY = "work_temperature_entity"
+DEFAULT_WORK_READY_BY = "16:30:00"
+
+LEG_HOME = "home"
+LEG_WORK = "work"
+
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]

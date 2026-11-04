@@ -52,6 +52,8 @@
         "menu_options": {
           "polling": "Abfrage",
           "schedule": "Zeitplan",
+          "work": "Feierabend",
+          "learning": "Abfahrtszeiten lernen",
           "heating_bands": "Heizstufen",
           "ventilation": "Sommerlüftung",
           "reminder": "Erinnerung bei Stillstand"
@@ -107,13 +109,44 @@
           "reminder_enabled": "Erinnern",
           "reminder_days": "Tage ohne Lauf"
         }
+      },
+      "work": {
+        "title": "Feierabend",
+        "description": "Wärmt das Auto auch vor der Abfahrt von der Arbeit, mit denselben Heizstufen. Der Zeitplan-Schalter muss an sein. Standardmäßig ist die Temperatur die des Autos selbst: Die Heizung wird um eine frische Messung gebeten und bekommt 30 Sekunden Zeit. Du kannst stattdessen einen Sensor für die Arbeit wählen. Solange dein Handy zu Hause ist, startet nichts.",
+        "data": {
+          "work_enabled": "Auto vor Feierabend wärmen",
+          "work_ready_by": "Abfahrbereit um",
+          "work_weekdays": "Tage",
+          "work_temperature_entity": "Temperatursensor bei der Arbeit"
+        },
+        "data_description": {
+          "work_temperature_entity": "Optional. Ein Sensor oder eine Wetter-Entität für die Temperatur bei der Arbeit. Leer lassen, um die Messung des Autos zu verwenden."
+        }
+      },
+      "learning": {
+        "title": "Abfahrtszeiten lernen",
+        "description": "Lernt, wann du normalerweise ins Auto steigst, und macht es dann für jeden Wochentag bereit, statt zur festen Zeit. Dafür braucht es einen Sensor, der anzeigt, dass du eingestiegen bist (der Sensor „Audioausgabe“ des iPhones zeigt CarPlay), und den Standort deines Handys. Der Verlauf, den Home Assistant schon hat, wird sofort genutzt. Bei weniger als 3 passenden Tagen gilt die feste Zeit.",
+        "data": {
+          "learn_enabled": "Abfahrtszeiten lernen",
+          "learn_entity": "Abfahrtssensor",
+          "learn_state": "Zustand für „eingestiegen“",
+          "learn_tracker": "Handy-Standort",
+          "learn_margin": "So viel früher fertig"
+        },
+        "data_description": {
+          "learn_entity": "Zum Beispiel der Sensor „Audioausgabe“ des iPhones.",
+          "learn_state": "Zum Beispiel CarPlay.",
+          "learn_tracker": "Der Gerätetracker oder die Person des Handys.",
+          "learn_margin": "Minuten vor der üblichen Abfahrt."
+        }
       }
     },
     "error": {
       "no_weekdays": "Wähle mindestens einen Tag",
       "runtime_too_long": "Die längste Laufzeit ist länger als die Zeit zwischen Mitternacht und der Fertig-um-Zeit",
       "bands_order": "Die Temperaturen müssen von warm nach kalt gehen: Nicht heizen über, dann Kalt, dann Sehr kalt",
-      "vent_below_heating": "Die Lüftung muss bei einer höheren Temperatur beginnen als „Nicht heizen über“"
+      "vent_below_heating": "Die Lüftung muss bei einer höheren Temperatur beginnen als „Nicht heizen über“",
+      "learn_needs_signal": "Wähle sowohl den Abfahrtssensor als auch den Handy-Standort"
     }
   },
   "selector": {
@@ -178,6 +211,12 @@
       },
       "last_heated": {
         "name": "Zuletzt geheizt"
+      },
+      "learned_home": {
+        "name": "Gelernte Abfahrtszeit von zu Hause"
+      },
+      "learned_work": {
+        "name": "Gelernte Abfahrtszeit von der Arbeit"
       }
     },
     "button": {

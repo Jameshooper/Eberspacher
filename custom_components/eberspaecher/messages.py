@@ -32,6 +32,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_title": "Car heater has not run for a while",
         "idle_body": "The car heater has not run for {days} days. Run it for about 10 "
         "minutes so the fuel lines and pump stay in working order.",
+        "prefix_work": "At work: ",
+        "result_skipped_home": "Skipped: you were not at home",
+        "result_skipped_work": "Skipped: your phone is at home",
+        "plan_title": "Car ready time",
+        "plan_body": "Tomorrow the car will be ready by {time}, learned from your recent departures.",
     },
     "de": {
         "started_title_heating": "Auto-Heizung gestartet",
@@ -55,6 +60,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_title": "Standheizung lief längere Zeit nicht",
         "idle_body": "Die Standheizung lief seit {days} Tagen nicht. Lass sie etwa 10 "
         "Minuten laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben.",
+        "prefix_work": "Bei der Arbeit: ",
+        "result_skipped_home": "Übersprungen: du warst nicht zu Hause",
+        "result_skipped_work": "Übersprungen: dein Handy ist zu Hause",
+        "plan_title": "Bereitzeit des Autos",
+        "plan_body": "Morgen ist das Auto um {time} fertig, gelernt aus deinen letzten Abfahrten.",
     },
     "sv": {
         "started_title_heating": "Bilvärmen startad",
@@ -78,6 +88,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_title": "Bilvärmaren har inte körts på ett tag",
         "idle_body": "Bilvärmaren har inte körts på {days} dagar. Kör den i ungefär 10 "
         "minuter så att bränsleledningar och pump hålls i gott skick.",
+        "prefix_work": "På jobbet: ",
+        "result_skipped_home": "Hoppade över: du var inte hemma",
+        "result_skipped_work": "Hoppade över: din telefon är hemma",
+        "plan_title": "Bilens klartid",
+        "plan_body": "I morgon är bilen klar till {time}, inlärt från dina senaste avfärder.",
     },
     "fi": {
         "started_title_heating": "Auton lämmitys käynnistetty",
@@ -101,6 +116,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "idle_title": "Autolämmitin ei ole käynyt pitkään aikaan",
         "idle_body": "Autolämmitin ei ole käynyt {days} päivään. Käytä sitä noin 10 "
         "minuuttia, jotta polttoaineletkut ja pumppu pysyvät kunnossa.",
+        "prefix_work": "Töissä: ",
+        "result_skipped_home": "Ohitettu: et ollut kotona",
+        "result_skipped_work": "Ohitettu: puhelimesi on kotona",
+        "plan_title": "Auton valmistumisaika",
+        "plan_body": "Huomenna auto on valmis klo {time}, opittu viimeaikaisista lähdöistäsi.",
     },
 }
 

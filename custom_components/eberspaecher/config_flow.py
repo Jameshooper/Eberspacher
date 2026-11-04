@@ -40,6 +40,11 @@ from .const import (
     CONF_COLD_BELOW,
     CONF_COLD_RUNTIME,
     CONF_IDLE_INTERVAL,
+    CONF_LEARN_ENABLED,
+    CONF_LEARN_ENTITY,
+    CONF_LEARN_MARGIN,
+    CONF_LEARN_STATE,
+    CONF_LEARN_TRACKER,
     CONF_MILD_RUNTIME,
     CONF_NO_HEAT_ABOVE,
     CONF_NOTIFY_SERVICE,
@@ -54,11 +59,19 @@ from .const import (
     CONF_VERY_COLD_BELOW,
     CONF_VERY_COLD_RUNTIME,
     CONF_WEEKDAYS,
+    CONF_WORK_ENABLED,
+    CONF_WORK_READY_BY,
+    CONF_WORK_TEMPERATURE_ENTITY,
+    CONF_WORK_WEEKDAYS,
     DEFAULT_IDLE_INTERVAL,
+    DEFAULT_LEARN_MARGIN,
+    DEFAULT_LEARN_STATE,
     DOMAIN,
     IDLE_INTERVAL_CHOICES,
+    LEG_WORK,
     WEEKDAYS,
 )
+from .learning import LearnConfig
 from .reminder import ReminderConfig
 from .schedule import ScheduleConfig, longest_runtime_fits
 
@@ -188,7 +201,15 @@ class EberspaecherOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["polling", "schedule", "heating_bands", "ventilation", "reminder"],
+            menu_options=[
+                "polling",
+                "schedule",
+                "work",
+                "learning",
+                "heating_bands",
+                "ventilation",
+                "reminder",
+            ],
         )
 
     async def async_step_polling(
@@ -358,3 +379,94 @@ class EberspaecherOptionsFlow(OptionsFlow):
             }
         )
         return self.async_show_form(step_id="reminder", data_schema=schema)
+
+    async def async_step_work(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Also warm the car before leaving work."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input.get(CONF_WORK_WEEKDAYS):
+                errors["base"] = "no_weekdays"
+            elif not longest_runtime_fits(
+                ScheduleConfig.from_options({**self.config_entry.options, **user_input}, LEG_WORK)
+            ):
+                errors["base"] = "runtime_too_long"
+            else:
+                return self._save(
+                    **{CONF_WORK_TEMPERATURE_ENTITY: None, **user_input}
+                )
+
+        options = {**self.config_entry.options, **(user_input or {})}
+        cfg = ScheduleConfig.from_options(options, LEG_WORK)
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_WORK_ENABLED, default=bool(options.get(CONF_WORK_ENABLED, False))
+                ): BooleanSelector(),
+                vol.Required(
+                    CONF_WORK_READY_BY, default=cfg.ready_by.strftime("%H:%M:%S")
+                ): TimeSelector(),
+                vol.Required(CONF_WORK_WEEKDAYS, default=list(cfg.weekdays)): SelectSelector(
+                    SelectSelectorConfig(
+                        options=WEEKDAYS,
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_WEEKDAYS,
+                    )
+                ),
+                vol.Optional(
+                    CONF_WORK_TEMPERATURE_ENTITY,
+                    description={"suggested_value": options.get(CONF_WORK_TEMPERATURE_ENTITY)},
+                ): EntitySelector(EntitySelectorConfig(domain=["sensor", "weather"])),
+            }
+        )
+        return self.async_show_form(step_id="work", data_schema=schema, errors=errors)
+
+    async def async_step_learning(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Learn the ready-by times from when you get in the car."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input.get(CONF_LEARN_ENABLED) and not (
+                user_input.get(CONF_LEARN_ENTITY) and user_input.get(CONF_LEARN_TRACKER)
+            ):
+                errors["base"] = "learn_needs_signal"
+            else:
+                return self._save(
+                    **{
+                        CONF_LEARN_ENTITY: None,
+                        CONF_LEARN_TRACKER: None,
+                        **user_input,
+                        CONF_LEARN_MARGIN: int(
+                            user_input.get(CONF_LEARN_MARGIN, DEFAULT_LEARN_MARGIN)
+                        ),
+                    }
+                )
+
+        current = LearnConfig.from_options({**self.config_entry.options, **(user_input or {})})
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_LEARN_ENABLED, default=current.enabled): BooleanSelector(),
+                vol.Optional(
+                    CONF_LEARN_ENTITY, description={"suggested_value": current.entity}
+                ): EntitySelector(EntitySelectorConfig(domain=["sensor", "binary_sensor"])),
+                vol.Required(
+                    CONF_LEARN_STATE, default=current.state or DEFAULT_LEARN_STATE
+                ): TextSelector(),
+                vol.Optional(
+                    CONF_LEARN_TRACKER, description={"suggested_value": current.tracker}
+                ): EntitySelector(EntitySelectorConfig(domain=["device_tracker", "person"])),
+                vol.Required(CONF_LEARN_MARGIN, default=current.margin): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0,
+                        max=30,
+                        step=1,
+                        unit_of_measurement="min",
+                        mode=NumberSelectorMode.BOX,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="learning", data_schema=schema, errors=errors)

@@ -52,6 +52,8 @@
         "menu_options": {
           "polling": "Polling",
           "schedule": "Schedule",
+          "work": "Leaving work",
+          "learning": "Learn departure times",
           "heating_bands": "Heating bands",
           "ventilation": "Summer ventilation",
           "reminder": "Idle reminder"
@@ -107,13 +109,44 @@
           "reminder_enabled": "Remind me",
           "reminder_days": "Days without a run"
         }
+      },
+      "work": {
+        "title": "Leaving work",
+        "description": "Also warm the car before you leave work, with the same heating bands. Needs the Schedule switch on. By default the temperature is the car's own: the heater is asked for a fresh reading and given 30 seconds to answer. You can choose a sensor for work instead. Nothing starts while your phone is at home.",
+        "data": {
+          "work_enabled": "Warm the car before leaving work",
+          "work_ready_by": "Ready to leave by",
+          "work_weekdays": "Days",
+          "work_temperature_entity": "Temperature sensor at work"
+        },
+        "data_description": {
+          "work_temperature_entity": "Optional. A sensor or weather entity for the temperature at work. Leave empty to use the car's own reading."
+        }
+      },
+      "learning": {
+        "title": "Learn departure times",
+        "description": "Learn when you usually get in the car and have it ready by then, for each weekday, instead of the fixed time. It needs a sensor that shows you got in (the iPhone Audio Output sensor shows CarPlay) and your phone's location. History Home Assistant already has is used right away. With fewer than 3 matching days the fixed time is used.",
+        "data": {
+          "learn_enabled": "Learn departure times",
+          "learn_entity": "Departure sensor",
+          "learn_state": "State that means you got in",
+          "learn_tracker": "Phone location",
+          "learn_margin": "Ready this much earlier"
+        },
+        "data_description": {
+          "learn_entity": "For example the iPhone's Audio Output sensor.",
+          "learn_state": "For example CarPlay.",
+          "learn_tracker": "The phone's device tracker or person.",
+          "learn_margin": "Minutes before the usual departure."
+        }
       }
     },
     "error": {
       "no_weekdays": "Choose at least one day",
       "runtime_too_long": "The longest run time is longer than the time between midnight and the ready-by time",
       "bands_order": "The temperatures must go from warm to cold: No heating above, then Cold, then Very cold",
-      "vent_below_heating": "Ventilation must start at a higher temperature than No heating above"
+      "vent_below_heating": "Ventilation must start at a higher temperature than No heating above",
+      "learn_needs_signal": "Choose both the departure sensor and the phone location"
     }
   },
   "selector": {
@@ -178,6 +211,12 @@
       },
       "last_heated": {
         "name": "Last heated"
+      },
+      "learned_home": {
+        "name": "Learned leave-home time"
+      },
+      "learned_work": {
+        "name": "Learned leave-work time"
       }
     },
     "button": {

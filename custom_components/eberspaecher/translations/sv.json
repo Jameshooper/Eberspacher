@@ -52,6 +52,8 @@
         "menu_options": {
           "polling": "Avläsning",
           "schedule": "Schema",
+          "work": "Åka från jobbet",
+          "learning": "Lär in avfärdstider",
           "heating_bands": "Värmenivåer",
           "ventilation": "Sommarventilation",
           "reminder": "Påminnelse vid stillestånd"
@@ -107,13 +109,44 @@
           "reminder_enabled": "Påminn mig",
           "reminder_days": "Dagar utan körning"
         }
+      },
+      "work": {
+        "title": "Åka från jobbet",
+        "description": "Värm även bilen innan du åker från jobbet, med samma värmenivåer. Schemabrytaren måste vara på. Som standard är temperaturen bilens egen: värmaren ombeds göra en ny avläsning och får 30 sekunder på sig. Du kan välja en sensor för jobbet i stället. Ingenting startar medan din telefon är hemma.",
+        "data": {
+          "work_enabled": "Värm bilen innan jag åker från jobbet",
+          "work_ready_by": "Redo att åka kl.",
+          "work_weekdays": "Dagar",
+          "work_temperature_entity": "Temperatursensor på jobbet"
+        },
+        "data_description": {
+          "work_temperature_entity": "Valfritt. En sensor eller väderentitet för temperaturen på jobbet. Lämna tomt för att använda bilens egen avläsning."
+        }
+      },
+      "learning": {
+        "title": "Lär in avfärdstider",
+        "description": "Lär in när du brukar sätta dig i bilen och gör den klar till då, för varje veckodag, i stället för vid den fasta tiden. Det behövs en sensor som visar att du satt dig i bilen (iPhones sensor Ljudutgång visar CarPlay) och telefonens plats. Historik som Home Assistant redan har används direkt. Med färre än 3 matchande dagar gäller den fasta tiden.",
+        "data": {
+          "learn_enabled": "Lär in avfärdstider",
+          "learn_entity": "Avfärdssensor",
+          "learn_state": "Tillstånd som betyder att du satt dig i bilen",
+          "learn_tracker": "Telefonens plats",
+          "learn_margin": "Klar så här mycket tidigare"
+        },
+        "data_description": {
+          "learn_entity": "Till exempel iPhones sensor Ljudutgång.",
+          "learn_state": "Till exempel CarPlay.",
+          "learn_tracker": "Telefonens enhetsspårare eller person.",
+          "learn_margin": "Minuter före den vanliga avfärden."
+        }
       }
     },
     "error": {
       "no_weekdays": "Välj minst en dag",
       "runtime_too_long": "Den längsta gångtiden är längre än tiden mellan midnatt och klar-till-tiden",
       "bands_order": "Temperaturerna måste gå från varmt till kallt: Ingen värme över, sedan Kallt, sedan Mycket kallt",
-      "vent_below_heating": "Ventilationen måste starta vid en högre temperatur än Ingen värme över"
+      "vent_below_heating": "Ventilationen måste starta vid en högre temperatur än Ingen värme över",
+      "learn_needs_signal": "Välj både avfärdssensorn och telefonens plats"
     }
   },
   "selector": {
@@ -178,6 +211,12 @@
       },
       "last_heated": {
         "name": "Senast uppvärmd"
+      },
+      "learned_home": {
+        "name": "Inlärd avfärdstid hemifrån"
+      },
+      "learned_work": {
+        "name": "Inlärd avfärdstid från jobbet"
       }
     },
     "button": {

@@ -20,6 +20,7 @@ from .api import (
     EberspaecherAuthError,
     EberspaecherConnectionError,
 )
+from .learning import DepartureLearner
 from .reminder import ReminderManager
 from .schedule import ScheduleManager
 from .const import (
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_RUNTIME,
     DOMAIN,
     FAILURES_BEFORE_ISSUE,
+    LEG_WORK,
     MODE_HEATING,
     SETTLE_DELAY,
     SETTLE_MAX_READS,
@@ -89,8 +91,13 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.temperature_reads = 0
         # Failed updates in a row, for the "cloud unreachable" repair issue.
         self._failures = 0
+        self.learner = DepartureLearner(hass, entry.entry_id)
         self.scheduler = ScheduleManager(hass, self)
+        self.work_scheduler = ScheduleManager(hass, self, LEG_WORK)
         self.reminder = ReminderManager(hass, entry.entry_id)
+        # A newly learned time moves the start times.
+        self.learner.async_add_listener(self.scheduler.async_replan)
+        self.learner.async_add_listener(self.work_scheduler.async_replan)
 
     @property
     def _issue_id(self) -> str:

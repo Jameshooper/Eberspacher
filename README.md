@@ -46,6 +46,7 @@ Per device (found automatically) and per heater:
 | `sensor` Status | Raw cloud state, e.g. `OFF`, `ACTIVATION_REQUESTED` (disabled by default) |
 | `sensor` Temperature | Last temperature the device reported |
 | `sensor` Last heated | When Home Assistant last saw the heater run in heating mode (once per device) |
+| `sensor` Learned leave-home / leave-work time | The ready-by time learned for today, and for each weekday (diagnostic, once per device) |
 | `button` Request temperature | Asks the device for a fresh reading |
 
 **Request temperature is manual on purpose.** It wakes the device, so it is not polled.
@@ -129,6 +130,47 @@ default), the schedule runs ventilation for the chosen time (20 minutes by defau
 car is cooler when you get in. It uses the same ready-by time and days. What ventilation
 does depends on the heater model, so try it by hand first.
 
+### Learned departure times
+
+Instead of one fixed ready-by time, the integration can learn when you really get in the
+car and have it ready by then, separately for each weekday. Turn it on under **Configure →
+Learn departure times** and choose:
+
+- a **departure sensor** and the **state** that means you got in. For an iPhone with the
+  Home Assistant app, the *Audio Output* sensor switches to `CarPlay` when the phone
+  connects to the car;
+- the **phone location** (its device tracker or person).
+
+The first connection of a morning with your phone at home, and of an afternoon (from 13:00)
+with it away from home, is kept for each day. History Home Assistant already holds is read when you switch it on, so it does not
+start from nothing. For a weekday with at least 3 recent matching days, the car is made
+ready by the early end of those departures (the early quarter) minus the margin you set
+(5 minutes by default), rounded down to 5 minutes and never more than two hours away from
+the fixed time. With fewer days, the fixed time from the Schedule settings is used. The
+evening before, at 20:00, you get a message when the learned time differs from the fixed
+one. Everything stays inside Home Assistant.
+
+With a phone location set, the morning schedule also does nothing on a day your phone is not at
+home when a start is due.
+
+### Leaving work
+
+**Configure → Leaving work** adds a second schedule that warms the car before you leave
+work. It uses the same heating bands, notification service and Schedule switch (turning the
+switch off pauses both), with its own days, ready-by time (16:30 by default) and, if you
+turn learning on, its own learned time.
+
+- **Temperature:** by default the car's own. The integration asks the car for a fresh
+  reading, waits 30 seconds and uses that, which works in an underground car park. It wakes
+  the device at each wake-up of the day, up to three times. In the same screen you can
+  choose a temperature sensor or weather entity for work instead, which is then used
+  without asking the car. Your outdoor sensor at home is never used here, and with no
+  reading the heater is not started and you get a message.
+- **No work location needed.** The first connection in the afternoon (from 13:00) while
+  your phone is not at home counts as leaving work, wherever that is. Nothing starts while
+  your phone is at home.
+- Notifications from this schedule start with "At work:".
+
 ### Prefer your own automation?
 
 The schedule is optional. Leave it off and use `eberspaecher.start_heating` from your own
@@ -179,6 +221,9 @@ the settings menus, entity names and notices. The notifications the integration 
 reminder) and the schedule's last result use the same language.
 
 ## Known limits
+
+- Learning needs your phone's location and a departure sensor. It cannot know about days
+  you leave at an unusual time for a reason it cannot see.
 
 - Only tested against one device. The device list and heater fields are read defensively,
   but other models may expose different fields.

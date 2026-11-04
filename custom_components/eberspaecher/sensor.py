@@ -11,9 +11,12 @@ from homeassistant.const import UnitOfTemperature, UnitOfTime
 from datetime import datetime
 
 from homeassistant.core import HomeAssistant
+from homeassistant.const import EntityCategory
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EberspaecherConfigEntry
+from .const import LEG_HOME, LEG_WORK, WEEKDAYS
 from .entity import EberspaecherEntity
 from .util import parse_temperature
 
@@ -35,6 +38,8 @@ async def async_setup_entry(
     first = next(iter(coordinator.data), None)
     if first is not None:
         entities.append(EberspaecherLastHeatedSensor(coordinator, first))
+        entities.append(EberspaecherLearnedSensor(coordinator, first, LEG_HOME))
+        entities.append(EberspaecherLearnedSensor(coordinator, first, LEG_WORK))
     async_add_entities(entities)
 
 
@@ -106,3 +111,50 @@ class EberspaecherLastHeatedSensor(EberspaecherEntity, SensorEntity):
     @property
     def native_value(self) -> datetime | None:
         return self.coordinator.reminder.last_heated
+
+
+class EberspaecherLearnedSensor(EberspaecherEntity, SensorEntity):
+    """The ready-by time learned for today, with the learned time of every weekday."""
+
+    _attr_icon = "mdi:school-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, imei: str, leg: str) -> None:
+        super().__init__(coordinator, imei, None, f"learned_{leg}")
+        self._attr_translation_key = f"learned_{leg}"
+        self._leg = leg
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.learner.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        learner = self.coordinator.learner
+        if not learner.config.enabled:
+            return None
+        today = dt_util.now().date()
+        scheduler = (
+            self.coordinator.scheduler if self._leg == LEG_HOME else self.coordinator.work_scheduler
+        )
+        if learner.learned_minutes(self._leg, today.weekday(), today) is None:
+            return None
+        return scheduler.config_for(today).ready_by.strftime("%H:%M")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        learner = self.coordinator.learner
+        today = dt_util.now().date()
+        learned = {}
+        for index, day in enumerate(WEEKDAYS):
+            found = learner.learned_time(self._leg, index, today)
+            learned[day] = found.strftime("%H:%M") if found else None
+        return {
+            "learned": learned,
+            "samples": {
+                day: len(learner.samples(self._leg, index, today))
+                for index, day in enumerate(WEEKDAYS)
+            },
+        }

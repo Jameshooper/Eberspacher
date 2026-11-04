@@ -52,6 +52,8 @@
         "menu_options": {
           "polling": "Tilan luku",
           "schedule": "Aikataulu",
+          "work": "Töistä lähtö",
+          "learning": "Opi lähtöajat",
           "heating_bands": "Lämmitystasot",
           "ventilation": "Kesätuuletus",
           "reminder": "Muistutus käyttämättömyydestä"
@@ -107,13 +109,44 @@
           "reminder_enabled": "Muistuta minua",
           "reminder_days": "Päivää ilman käyntiä"
         }
+      },
+      "work": {
+        "title": "Töistä lähtö",
+        "description": "Lämmitä auto myös ennen töistä lähtöä samoilla lämmitystasoilla. Aikataulu-kytkimen pitää olla päällä. Oletuksena lämpötila on auton oma: lämmitintä pyydetään tekemään uusi mittaus ja sille annetaan 30 sekuntia aikaa. Voit valita sen tilalle anturin töihin. Mitään ei käynnistetä, kun puhelimesi on kotona.",
+        "data": {
+          "work_enabled": "Lämmitä auto ennen töistä lähtöä",
+          "work_ready_by": "Valmis lähtöön klo",
+          "work_weekdays": "Päivät",
+          "work_temperature_entity": "Lämpötila-anturi töissä"
+        },
+        "data_description": {
+          "work_temperature_entity": "Valinnainen. Anturi tai sääentiteetti töiden lämpötilalle. Jätä tyhjäksi, jos haluat käyttää auton omaa lukemaa."
+        }
+      },
+      "learning": {
+        "title": "Opi lähtöajat",
+        "description": "Oppii, milloin yleensä nouset autoon, ja valmistaa auton siihen mennessä kunkin viikonpäivän kohdalla kiinteän ajan sijaan. Tarvitaan anturi, joka näyttää nousseesi autoon (iPhonen Äänilähtö-anturi näyttää CarPlay), sekä puhelimen sijainti. Home Assistantin jo tallentamaa historiaa käytetään heti. Jos sopivia päiviä on alle 3, käytetään kiinteää aikaa.",
+        "data": {
+          "learn_enabled": "Opi lähtöajat",
+          "learn_entity": "Lähtöanturi",
+          "learn_state": "Tila, joka tarkoittaa autoon nousua",
+          "learn_tracker": "Puhelimen sijainti",
+          "learn_margin": "Valmis näin paljon aiemmin"
+        },
+        "data_description": {
+          "learn_entity": "Esimerkiksi iPhonen Äänilähtö-anturi.",
+          "learn_state": "Esimerkiksi CarPlay.",
+          "learn_tracker": "Puhelimen laitteenseuranta tai henkilö.",
+          "learn_margin": "Minuutteja tavallista lähtöä ennen."
+        }
       }
     },
     "error": {
       "no_weekdays": "Valitse vähintään yksi päivä",
       "runtime_too_long": "Pisin käyntiaika on pidempi kuin aika keskiyön ja valmis-kellonajan välillä",
       "bands_order": "Lämpötilojen on mentävä lämpimästä kylmään: Ei lämmitystä yli, sitten Kylmä, sitten Erittäin kylmä",
-      "vent_below_heating": "Tuuletuksen on alettava korkeammasta lämpötilasta kuin Ei lämmitystä yli"
+      "vent_below_heating": "Tuuletuksen on alettava korkeammasta lämpötilasta kuin Ei lämmitystä yli",
+      "learn_needs_signal": "Valitse sekä lähtöanturi että puhelimen sijainti"
     }
   },
   "selector": {
@@ -178,6 +211,12 @@
       },
       "last_heated": {
         "name": "Viimeksi lämmitetty"
+      },
+      "learned_home": {
+        "name": "Opittu kotoa lähtöaika"
+      },
+      "learned_work": {
+        "name": "Opittu töistä lähtöaika"
       }
     },
     "button": {
