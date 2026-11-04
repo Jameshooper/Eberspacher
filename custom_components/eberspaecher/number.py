@@ -35,7 +35,7 @@ async def async_setup_entry(
 class EberspaecherRunTime(EberspaecherEntity, RestoreNumber):
     """How long the Heating switch runs the heater when turned on."""
 
-    _attr_name = "Run time"
+    _attr_translation_key = "run_time"
     _attr_icon = "mdi:timer-outline"
     _attr_mode = NumberMode.BOX
     _attr_device_class = NumberDeviceClass.DURATION

@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Eberspächer EasyStart Web",
+        "description": "Melde dich mit dem Konto an, das du bei myeberspaecher.com verwendest. Dies ist eine inoffizielle Integration.",
+        "data": {
+          "email": "E-Mail",
+          "password": "Passwort"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut anmelden",
+        "description": "Die gespeicherten Zugangsdaten für {email} funktionieren nicht mehr. Gib das aktuelle Passwort ein.",
+        "data": {
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "myeberspaecher.com ist nicht erreichbar",
+      "invalid_auth": "E-Mail oder Passwort falsch",
+      "no_devices": "Das Konto hat keine EasyStart-Web-Geräte",
+      "unknown": "Unerwarteter Fehler, siehe das Home-Assistant-Protokoll"
+    },
+    "abort": {
+      "already_configured": "Dieses Konto ist bereits eingerichtet",
+      "reauth_successful": "Passwort aktualisiert"
+    }
+  },
+  "services": {
+    "start_heating": {
+      "name": "Heizen starten",
+      "description": "Startet die Standheizung für eine bestimmte Zeit.",
+      "fields": {
+        "runtime": {
+          "name": "Laufzeit",
+          "description": "Laufzeit in Minuten. Standard ist der Wert der Entität „Laufzeit“."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Heizen oder Lüften. Standard ist der Modus des Schalters, auf dem die Aktion aufgerufen wird."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "description": "Was möchtest du ändern?",
+        "menu_options": {
+          "polling": "Abfrage",
+          "schedule": "Zeitplan",
+          "heating_bands": "Heizstufen",
+          "ventilation": "Sommerlüftung",
+          "reminder": "Erinnerung bei Stillstand"
+        }
+      },
+      "polling": {
+        "title": "Abfrage",
+        "description": "Wie oft der Status der Standheizung geprüft wird, solange nichts läuft. Während des Betriebs und direkt nach jedem Start oder Stopp aus Home Assistant wird immer geprüft. Bei „Aus“ erscheinen Starts über die EasyStart-App oder -Website erst nach dem nächsten Befehl aus Home Assistant oder nach einem Neustart.",
+        "data": {
+          "idle_interval": "Statusprüfung im Leerlauf"
+        }
+      },
+      "schedule": {
+        "title": "Zeitplan",
+        "description": "Startet die Standheizung selbstständig, damit das Auto zu einer festgelegten Zeit fertig ist. Je kälter es ist, desto früher startet sie (die Stufen stellst du unter Heizstufen ein). Ohne Temperatursensor wird die letzte Messung der Heizung verwendet.",
+        "data": {
+          "schedule_enabled": "Zeitplan an",
+          "ready_by": "Auto fertig um",
+          "weekdays": "Tage",
+          "temperature_entity": "Außentemperatursensor",
+          "notify_service": "Benachrichtigungsdienst"
+        },
+        "data_description": {
+          "temperature_entity": "Optional. Ein Sensor mit der Außentemperatur in °C.",
+          "notify_service": "Optional. Zum Beispiel notify.mobile_app_dein_handy. Sendet eine Nachricht, wenn die Heizung startet, nicht startet oder nicht nötig ist."
+        }
+      },
+      "heating_bands": {
+        "title": "Heizstufen",
+        "description": "Oberhalb der ersten Temperatur wird die Heizung nicht gestartet. Jede Stufe darunter hat eine eigene Laufzeit und eine eigene Startzeit, die sich aus der Fertig-um-Zeit ergibt.",
+        "data": {
+          "no_heat_above": "Nicht heizen über",
+          "mild_runtime": "Mild: Laufzeit",
+          "cold_below": "Kalt: bei oder unter",
+          "cold_runtime": "Kalt: Laufzeit",
+          "very_cold_below": "Sehr kalt: bei oder unter",
+          "very_cold_runtime": "Sehr kalt: Laufzeit"
+        }
+      },
+      "ventilation": {
+        "title": "Sommerlüftung",
+        "description": "Ab dieser Temperatur wird statt zu heizen die Lüftung der Standheizung betrieben, damit das Auto beim Einsteigen kühler ist. Erfordert eine Standheizung mit Lüftungsfunktion.",
+        "data": {
+          "vent_enabled": "Bei Hitze lüften",
+          "vent_above": "Lüften bei oder über",
+          "vent_runtime": "Lüftungslaufzeit"
+        }
+      },
+      "reminder": {
+        "title": "Erinnerung bei Stillstand",
+        "description": "Eine Standheizung, die monatelang nicht benutzt wird, sollte ab und zu laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben. Läuft sie so viele Tage nicht, bekommst du eine Nachricht (über den unter Zeitplan eingestellten Benachrichtigungsdienst) und einen Hinweis unter Reparaturen, wöchentlich wiederholt, bis sie läuft.",
+        "data": {
+          "reminder_enabled": "Erinnern",
+          "reminder_days": "Tage ohne Lauf"
+        }
+      }
+    },
+    "error": {
+      "no_weekdays": "Wähle mindestens einen Tag",
+      "runtime_too_long": "Die längste Laufzeit ist länger als die Zeit zwischen Mitternacht und der Fertig-um-Zeit",
+      "bands_order": "Die Temperaturen müssen von warm nach kalt gehen: Nicht heizen über, dann Kalt, dann Sehr kalt",
+      "vent_below_heating": "Die Lüftung muss bei einer höheren Temperatur beginnen als „Nicht heizen über“"
+    }
+  },
+  "selector": {
+    "idle_interval": {
+      "options": {
+        "0": "Aus",
+        "5": "Alle 5 Minuten",
+        "10": "Alle 10 Minuten (Standard)",
+        "15": "Alle 15 Minuten",
+        "30": "Alle 30 Minuten",
+        "60": "Stündlich"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Montag",
+        "tue": "Dienstag",
+        "wed": "Mittwoch",
+        "thu": "Donnerstag",
+        "fri": "Freitag",
+        "sat": "Samstag",
+        "sun": "Sonntag"
+      }
+    }
+  },
+  "issues": {
+    "cloud_unreachable": {
+      "title": "Eberspächer-Cloud nicht erreichbar",
+      "description": "Home Assistant konnte myeberspaecher.com mehrere Prüfungen hintereinander nicht erreichen. Der letzte Fehler war: {error}\n\nWenn es weiter fehlschlägt, prüfe deine Internet- und DNS-Einstellungen oder ob der Dienst EasyStart Web gestört ist. Die Integration versucht es weiter, und dieser Hinweis verschwindet, sobald es wieder funktioniert."
+    },
+    "heater_idle": {
+      "title": "Standheizung lief längere Zeit nicht",
+      "description": "Die Standheizung lief seit {days} Tagen nicht. Lass sie etwa 10 Minuten laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben. Dieser Hinweis verschwindet, sobald sie gelaufen ist."
+    }
+  },
+  "entity": {
+    "switch": {
+      "heating": {
+        "name": "Heizen"
+      },
+      "ventilation": {
+        "name": "Lüften"
+      },
+      "schedule": {
+        "name": "Zeitplan"
+      }
+    },
+    "number": {
+      "run_time": {
+        "name": "Laufzeit"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "remaining": {
+        "name": "Restlaufzeit"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "last_heated": {
+        "name": "Zuletzt geheizt"
+      }
+    },
+    "button": {
+      "request_temperature": {
+        "name": "Temperatur abfragen"
+      }
+    }
+  }
+}

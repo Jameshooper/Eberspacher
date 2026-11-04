@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Eberspächer EasyStart Web",
+        "description": "Kirjaudu sisään tilillä, jota käytät myeberspaecher.com-palvelussa. Tämä on epävirallinen integraatio.",
+        "data": {
+          "email": "Sähköposti",
+          "password": "Salasana"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Kirjaudu uudelleen",
+        "description": "Tallennetut tunnukset osoitteelle {email} eivät enää toimi. Anna nykyinen salasana.",
+        "data": {
+          "password": "Salasana"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Palvelua myeberspaecher.com ei tavoitettu",
+      "invalid_auth": "Väärä sähköposti tai salasana",
+      "no_devices": "Tilillä ei ole EasyStart Web -laitteita",
+      "unknown": "Odottamaton virhe, katso Home Assistantin loki"
+    },
+    "abort": {
+      "already_configured": "Tämä tili on jo otettu käyttöön",
+      "reauth_successful": "Salasana päivitetty"
+    }
+  },
+  "services": {
+    "start_heating": {
+      "name": "Käynnistä lämmitys",
+      "description": "Käynnistää lämmittimen asetetuksi ajaksi.",
+      "fields": {
+        "runtime": {
+          "name": "Käyntiaika",
+          "description": "Käyntiaika minuutteina. Oletuksena Käyntiaika-luvun arvo."
+        },
+        "mode": {
+          "name": "Tila",
+          "description": "Lämmitys tai tuuletus. Oletuksena sen kytkimen tila, jolle toiminto kohdistetaan."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Asetukset",
+        "description": "Mitä haluat muuttaa?",
+        "menu_options": {
+          "polling": "Tilan luku",
+          "schedule": "Aikataulu",
+          "heating_bands": "Lämmitysportaat",
+          "ventilation": "Kesätuuletus",
+          "reminder": "Muistutus käyttämättömyydestä"
+        }
+      },
+      "polling": {
+        "title": "Tilan luku",
+        "description": "Kuinka usein lämmittimen tila tarkistetaan, kun mikään ei ole käynnissä. Käynnin aikana ja heti jokaisen Home Assistantista tehdyn käynnistyksen tai pysäytyksen jälkeen tila tarkistetaan aina. Kun valittuna on Pois, EasyStart-sovelluksella tai verkkosivulla tehdyt käynnistykset näkyvät vasta seuraavan Home Assistantin komennon tai uudelleenkäynnistyksen jälkeen.",
+        "data": {
+          "idle_interval": "Tilan tarkistus lepotilassa"
+        }
+      },
+      "schedule": {
+        "title": "Aikataulu",
+        "description": "Käynnistä lämmitin automaattisesti, jotta auto on valmis tiettyyn aikaan mennessä. Mitä kylmempi on, sitä aiemmin se käynnistyy (portaat asetetaan kohdassa Lämmitysportaat). Ilman lämpötila-anturia käytetään lämmittimen omaa viimeisintä lukemaa.",
+        "data": {
+          "schedule_enabled": "Aikataulu päällä",
+          "ready_by": "Auto valmiina klo",
+          "weekdays": "Päivät",
+          "temperature_entity": "Ulkolämpötila-anturi",
+          "notify_service": "Ilmoituspalvelu"
+        },
+        "data_description": {
+          "temperature_entity": "Valinnainen. Anturi, joka antaa ulkolämpötilan °C-asteina.",
+          "notify_service": "Valinnainen. Esimerkiksi notify.mobile_app_puhelimesi. Lähettää viestin, kun lämmitin käynnistyy, ei käynnisty tai ei ole tarpeen."
+        }
+      },
+      "heating_bands": {
+        "title": "Lämmitysportaat",
+        "description": "Ensimmäisen lämpötilan yläpuolella lämmitintä ei käynnistetä. Jokaisella alla olevalla portaalla on oma käyntiaikansa ja oma käynnistysaikansa, joka lasketaan valmis-kellonajasta.",
+        "data": {
+          "no_heat_above": "Ei lämmitystä yli",
+          "mild_runtime": "Leuto: käyntiaika",
+          "cold_below": "Kylmä: enintään",
+          "cold_runtime": "Kylmä: käyntiaika",
+          "very_cold_below": "Erittäin kylmä: enintään",
+          "very_cold_runtime": "Erittäin kylmä: käyntiaika"
+        }
+      },
+      "ventilation": {
+        "title": "Kesätuuletus",
+        "description": "Kun on tämän verran lämmintä tai lämpimämpää, lämmittimen tuuletus käynnistetään lämmityksen sijaan, jotta auto on viileämpi, kun astut sisään. Edellyttää lämmitintä, joka tukee tuuletusta.",
+        "data": {
+          "vent_enabled": "Tuuleta, kun on kuuma",
+          "vent_above": "Tuuleta vähintään",
+          "vent_runtime": "Tuuletuksen käyntiaika"
+        }
+      },
+      "reminder": {
+        "title": "Muistutus käyttämättömyydestä",
+        "description": "Lämmitin, joka on kuukausia käyttämättä, kannattaa käyttää silloin tällöin, jotta polttoaineletkut ja pumppu pysyvät kunnossa. Kun se ei ole käynnistynyt näin monta päivää, saat viestin (Aikataulu-kohdassa asetetun ilmoituspalvelun kautta) ja ilmoituksen Korjaukset-kohtaan, joka toistuu viikoittain, kunnes lämmitin on käynyt.",
+        "data": {
+          "reminder_enabled": "Muistuta minua",
+          "reminder_days": "Päivää ilman käyntiä"
+        }
+      }
+    },
+    "error": {
+      "no_weekdays": "Valitse vähintään yksi päivä",
+      "runtime_too_long": "Pisin käyntiaika on pidempi kuin aika keskiyön ja valmis-kellonajan välillä",
+      "bands_order": "Lämpötilojen on mentävä lämpimästä kylmään: Ei lämmitystä yli, sitten Kylmä, sitten Erittäin kylmä",
+      "vent_below_heating": "Tuuletuksen on alettava korkeammasta lämpötilasta kuin Ei lämmitystä yli"
+    }
+  },
+  "selector": {
+    "idle_interval": {
+      "options": {
+        "0": "Pois",
+        "5": "5 minuutin välein",
+        "10": "10 minuutin välein (oletus)",
+        "15": "15 minuutin välein",
+        "30": "30 minuutin välein",
+        "60": "Tunnin välein"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Maanantai",
+        "tue": "Tiistai",
+        "wed": "Keskiviikko",
+        "thu": "Torstai",
+        "fri": "Perjantai",
+        "sat": "Lauantai",
+        "sun": "Sunnuntai"
+      }
+    }
+  },
+  "issues": {
+    "cloud_unreachable": {
+      "title": "Eberspächer-pilvi ei vastaa",
+      "description": "Home Assistant ei ole tavoittanut palvelua myeberspaecher.com useissa peräkkäisissä tarkistuksissa. Viimeisin virhe oli: {error}\n\nJos ongelma jatkuu, tarkista internet- ja DNS-asetukset tai onko EasyStart Web -palvelussa häiriö. Integraatio yrittää jatkuvasti, ja tämä ilmoitus poistuu, kun yhteys toimii taas."
+    },
+    "heater_idle": {
+      "title": "Autolämmitin ei ole käynyt pitkään aikaan",
+      "description": "Lämmitin ei ole käynyt {days} päivään. Käytä sitä noin 10 minuuttia, jotta polttoaineletkut ja pumppu pysyvät kunnossa. Tämä ilmoitus poistuu, kun lämmitin on käynyt."
+    }
+  },
+  "entity": {
+    "switch": {
+      "heating": {
+        "name": "Lämmitys"
+      },
+      "ventilation": {
+        "name": "Tuuletus"
+      },
+      "schedule": {
+        "name": "Aikataulu"
+      }
+    },
+    "number": {
+      "run_time": {
+        "name": "Käyntiaika"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Tila"
+      },
+      "remaining": {
+        "name": "Käyntiaikaa jäljellä"
+      },
+      "temperature": {
+        "name": "Lämpötila"
+      },
+      "last_heated": {
+        "name": "Viimeksi lämmitetty"
+      }
+    },
+    "button": {
+      "request_temperature": {
+        "name": "Pyydä lämpötila"
+      }
+    }
+  }
+}

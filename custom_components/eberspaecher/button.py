@@ -33,7 +33,7 @@ class EberspaecherRequestTemperature(EberspaecherEntity, ButtonEntity):
     is polled automatically.
     """
 
-    _attr_name = "Request temperature"
+    _attr_translation_key = "request_temperature"
     _attr_icon = "mdi:thermometer-auto"
 
     def __init__(self, coordinator, imei: str) -> None:

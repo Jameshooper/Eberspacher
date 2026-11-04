@@ -41,7 +41,7 @@ async def async_setup_entry(
 class EberspaecherStatusSensor(EberspaecherEntity, SensorEntity):
     """Raw heater state reported by the cloud (e.g. OFF, ACTIVATION_REQUESTED)."""
 
-    _attr_name = "Status"
+    _attr_translation_key = "status"
     _attr_icon = "mdi:information-outline"
     _attr_entity_registry_enabled_default = False
 
@@ -56,7 +56,7 @@ class EberspaecherStatusSensor(EberspaecherEntity, SensorEntity):
 class EberspaecherRemainingSensor(EberspaecherEntity, SensorEntity):
     """Minutes left of the current run."""
 
-    _attr_name = "Remaining run time"
+    _attr_translation_key = "remaining"
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
@@ -74,7 +74,7 @@ class EberspaecherRemainingSensor(EberspaecherEntity, SensorEntity):
 class EberspaecherTemperatureSensor(EberspaecherEntity, SensorEntity):
     """Last temperature the device reported (updated by the Request temperature button)."""
 
-    _attr_name = "Temperature"
+    _attr_translation_key = "temperature"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -90,7 +90,7 @@ class EberspaecherTemperatureSensor(EberspaecherEntity, SensorEntity):
 class EberspaecherLastHeatedSensor(EberspaecherEntity, SensorEntity):
     """When the heater last ran in heating mode, as seen by Home Assistant."""
 
-    _attr_name = "Last heated"
+    _attr_translation_key = "last_heated"
     _attr_icon = "mdi:history"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 

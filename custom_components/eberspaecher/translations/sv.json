@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Eberspächer EasyStart Web",
+        "description": "Logga in med kontot du använder på myeberspaecher.com. Detta är en inofficiell integration.",
+        "data": {
+          "email": "E-post",
+          "password": "Lösenord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Logga in igen",
+        "description": "Den sparade inloggningen för {email} fungerar inte längre. Ange det aktuella lösenordet.",
+        "data": {
+          "password": "Lösenord"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Det gick inte att nå myeberspaecher.com",
+      "invalid_auth": "Fel e-postadress eller lösenord",
+      "no_devices": "Kontot har inga EasyStart Web-enheter",
+      "unknown": "Oväntat fel, se Home Assistants logg"
+    },
+    "abort": {
+      "already_configured": "Det här kontot är redan konfigurerat",
+      "reauth_successful": "Lösenordet har uppdaterats"
+    }
+  },
+  "services": {
+    "start_heating": {
+      "name": "Starta värme",
+      "description": "Startar värmaren under en angiven tid.",
+      "fields": {
+        "runtime": {
+          "name": "Gångtid",
+          "description": "Antal minuter. Standard är värdet i Gångtid-numret."
+        },
+        "mode": {
+          "name": "Läge",
+          "description": "Värme eller ventilation. Standard är läget för den brytare du anropar den på."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alternativ",
+        "description": "Vad vill du ändra?",
+        "menu_options": {
+          "polling": "Avläsning",
+          "schedule": "Schema",
+          "heating_bands": "Värmenivåer",
+          "ventilation": "Sommarventilation",
+          "reminder": "Påminnelse vid stillestånd"
+        }
+      },
+      "polling": {
+        "title": "Avläsning",
+        "description": "Hur ofta värmarens status kontrolleras när inget körs. Medan den körs och direkt efter varje start eller stopp från Home Assistant kontrolleras den alltid. Med Av syns starter från EasyStart-appen eller webbplatsen först efter nästa kommando från Home Assistant eller en omstart.",
+        "data": {
+          "idle_interval": "Statuskontroll i viloläge"
+        }
+      },
+      "schedule": {
+        "title": "Schema",
+        "description": "Starta värmaren automatiskt så att bilen är klar till en viss tid. Ju kallare det är, desto tidigare startar den (ställ in nivåerna under Värmenivåer). Utan temperatursensor används värmarens senaste avläsning.",
+        "data": {
+          "schedule_enabled": "Schema på",
+          "ready_by": "Bilen klar till",
+          "weekdays": "Dagar",
+          "temperature_entity": "Utomhustemperatursensor",
+          "notify_service": "Aviseringstjänst"
+        },
+        "data_description": {
+          "temperature_entity": "Valfritt. En sensor med utomhustemperaturen i °C.",
+          "notify_service": "Valfritt. Till exempel notify.mobile_app_din_telefon. Skickar ett meddelande när värmaren startar, inte kan startas eller inte behövs."
+        }
+      },
+      "heating_bands": {
+        "title": "Värmenivåer",
+        "description": "Över den första temperaturen startas inte värmaren. Varje nivå nedanför har egen gångtid och egen starttid som räknas ut från klar-till-tiden.",
+        "data": {
+          "no_heat_above": "Ingen värme över",
+          "mild_runtime": "Milt: gångtid",
+          "cold_below": "Kallt: vid eller under",
+          "cold_runtime": "Kallt: gångtid",
+          "very_cold_below": "Mycket kallt: vid eller under",
+          "very_cold_runtime": "Mycket kallt: gångtid"
+        }
+      },
+      "ventilation": {
+        "title": "Sommarventilation",
+        "description": "När det är så här varmt eller varmare körs värmarens ventilation i stället för värme, så att bilen är svalare när du kliver in. Kräver en värmare som stöder ventilation.",
+        "data": {
+          "vent_enabled": "Ventilera när det är varmt",
+          "vent_above": "Ventilera vid eller över",
+          "vent_runtime": "Ventilationens gångtid"
+        }
+      },
+      "reminder": {
+        "title": "Påminnelse vid stillestånd",
+        "description": "En värmare som står oanvänd i månader bör köras då och då så att bränsleledningar och pump hålls i gott skick. När den inte körts på så här många dagar får du ett meddelande (via aviseringstjänsten under Schema) och en notis under Reparationer, som upprepas varje vecka tills den körs.",
+        "data": {
+          "reminder_enabled": "Påminn mig",
+          "reminder_days": "Dagar utan körning"
+        }
+      }
+    },
+    "error": {
+      "no_weekdays": "Välj minst en dag",
+      "runtime_too_long": "Den längsta gångtiden är längre än tiden mellan midnatt och klar-till-tiden",
+      "bands_order": "Temperaturerna måste gå från varmt till kallt: Ingen värme över, sedan Kallt, sedan Mycket kallt",
+      "vent_below_heating": "Ventilationen måste starta vid en högre temperatur än Ingen värme över"
+    }
+  },
+  "selector": {
+    "idle_interval": {
+      "options": {
+        "0": "Av",
+        "5": "Var 5:e minut",
+        "10": "Var 10:e minut (standard)",
+        "15": "Var 15:e minut",
+        "30": "Var 30:e minut",
+        "60": "Varje timme"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Måndag",
+        "tue": "Tisdag",
+        "wed": "Onsdag",
+        "thu": "Torsdag",
+        "fri": "Fredag",
+        "sat": "Lördag",
+        "sun": "Söndag"
+      }
+    }
+  },
+  "issues": {
+    "cloud_unreachable": {
+      "title": "Eberspächer-molnet kan inte nås",
+      "description": "Home Assistant har inte kunnat nå myeberspaecher.com vid flera kontroller i rad. Det senaste felet var: {error}\n\nOm det fortsätter, kontrollera internet- och DNS-inställningarna eller om tjänsten EasyStart Web ligger nere. Integrationen försöker hela tiden och den här notisen försvinner när det fungerar igen."
+    },
+    "heater_idle": {
+      "title": "Bilvärmaren har inte körts på ett tag",
+      "description": "Värmaren har inte körts på {days} dagar. Kör den i ungefär 10 minuter så att bränsleledningar och pump hålls i gott skick. Den här notisen försvinner när den har körts."
+    }
+  },
+  "entity": {
+    "switch": {
+      "heating": {
+        "name": "Värme"
+      },
+      "ventilation": {
+        "name": "Ventilation"
+      },
+      "schedule": {
+        "name": "Schema"
+      }
+    },
+    "number": {
+      "run_time": {
+        "name": "Gångtid"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "remaining": {
+        "name": "Återstående gångtid"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "last_heated": {
+        "name": "Senast uppvärmd"
+      }
+    },
+    "button": {
+      "request_temperature": {
+        "name": "Begär temperatur"
+      }
+    }
+  }
+}

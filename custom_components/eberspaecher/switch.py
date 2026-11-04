@@ -187,7 +187,7 @@ class EberspaecherRunSwitch(EberspaecherEntity, SwitchEntity):
 class EberspaecherHeatingSwitch(EberspaecherRunSwitch):
     """Heating switch."""
 
-    _attr_name = "Heating"
+    _attr_translation_key = "heating"
     _attr_icon = "mdi:car-defrost-front"
     _mode = MODE_HEATING
 
@@ -200,7 +200,7 @@ class EberspaecherHeatingSwitch(EberspaecherRunSwitch):
 class EberspaecherVentilationSwitch(EberspaecherRunSwitch):
     """Ventilation switch: runs the heater's fan without heating (summer)."""
 
-    _attr_name = "Ventilation"
+    _attr_translation_key = "ventilation"
     _attr_icon = "mdi:fan"
     _mode = MODE_VENTILATION
 
@@ -213,7 +213,7 @@ class EberspaecherVentilationSwitch(EberspaecherRunSwitch):
 class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
     """Turns the temperature schedule on or off (kept in the integration options)."""
 
-    _attr_name = "Schedule"
+    _attr_translation_key = "schedule"
     _attr_icon = "mdi:calendar-clock"
 
     def __init__(

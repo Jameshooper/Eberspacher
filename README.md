@@ -9,7 +9,7 @@ time, stop it, and see whether it is running.
 > can change or stop working at any time. Check Eberspächer's terms of use before
 > relying on it. Use at your own risk, and never rely on it for safety-critical heating.
 
-**Status: early (0.1.4). Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
+**Status: early. Requires Home Assistant 2025.3 or newer. Written against one device (a single water heater).** Other
 models and multi-heater units may behave differently. Bug reports with the
 Home Assistant log are welcome.
 
@@ -171,6 +171,12 @@ short run started from the app and finished between checks may not be noticed.
   email, password and device ID are removed from it.
 - If the cloud cannot be reached for six checks in a row, a notice appears under
   **Settings → Repairs**. It goes away by itself when the connection works again.
+
+## Languages
+
+English, German, Swedish and Finnish. Home Assistant uses the language of your profile for
+the settings menus, entity names and notices. Notification messages the integration sends
+(schedule and reminder) are in English.
 
 ## Known limits
 

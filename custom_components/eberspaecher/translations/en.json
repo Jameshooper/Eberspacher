@@ -142,11 +142,48 @@
   "issues": {
     "cloud_unreachable": {
       "title": "Eberspächer cloud unreachable",
-      "description": "Home Assistant has not been able to reach myeberspaecher.com for several checks in a row. The last error was: {error}\\n\\nIf it keeps failing, check your internet and DNS settings, or whether the EasyStart Web service is down. The integration keeps trying and this notice goes away when it works again."
+      "description": "Home Assistant has not been able to reach myeberspaecher.com for several checks in a row. The last error was: {error}\n\nIf it keeps failing, check your internet and DNS settings, or whether the EasyStart Web service is down. The integration keeps trying and this notice goes away when it works again."
     },
     "heater_idle": {
       "title": "Car heater has not run for a while",
       "description": "The heater has not run for {days} days. Run it for about 10 minutes so the fuel lines and pump stay in working order. This notice goes away once it has run."
+    }
+  },
+  "entity": {
+    "switch": {
+      "heating": {
+        "name": "Heating"
+      },
+      "ventilation": {
+        "name": "Ventilation"
+      },
+      "schedule": {
+        "name": "Schedule"
+      }
+    },
+    "number": {
+      "run_time": {
+        "name": "Run time"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "remaining": {
+        "name": "Remaining run time"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "last_heated": {
+        "name": "Last heated"
+      }
+    },
+    "button": {
+      "request_temperature": {
+        "name": "Request temperature"
+      }
     }
   }
 }
