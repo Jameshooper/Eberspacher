@@ -107,7 +107,11 @@
         "description": "Lämmitin, joka on kuukausia käyttämättä, kannattaa käyttää silloin tällöin, jotta polttoaineletkut ja pumppu pysyvät kunnossa. Kun se ei ole käynnistynyt näin monta päivää, saat viestin (Aikataulu-kohdassa asetetun ilmoituspalvelun kautta) ja ilmoituksen Korjaukset-kohtaan, joka toistuu viikoittain, kunnes lämmitin on käynyt.",
         "data": {
           "reminder_enabled": "Muistuta minua",
-          "reminder_days": "Päivää ilman käyntiä"
+          "reminder_days": "Päivää ilman käyntiä",
+          "car_check_enabled": "Tarkista viikoittain, että auto vastaa"
+        },
+        "data_description": {
+          "car_check_enabled": "Joka sunnuntai klo 18:00 autolta kysytään lämpötilaa (tämä vain lukee, lämmitin ei koskaan käynnisty). Jos se ei vastaa, saat viestin ja ilmoituksen Korjaukset-kohtaan."
         }
       },
       "work": {
@@ -183,6 +187,10 @@
     "heater_idle": {
       "title": "Autolämmitin ei ole käynyt pitkään aikaan",
       "description": "Lämmitin ei ole käynyt {days} päivään. Käytä sitä noin 10 minuuttia, jotta polttoaineletkut ja pumppu pysyvät kunnossa. Tämä ilmoitus poistuu, kun lämmitin on käynyt."
+    },
+    "car_unreachable": {
+      "title": "Auton laite ei vastaa",
+      "description": "{name} ei vastannut viikoittaiseen tarkistukseen: siltä kysyttiin lämpötilaa, eikä se vastannut 3 minuutissa. Lämmitin ei ehkä käynnisty Home Assistantista tai EasyStart-sovelluksesta.\n\nTarkista auton akku ja että EasyStart-laitteen SIM-kortti on käytössä. Ilmoitus poistuu seuraavan vastatun tarkistuksen jälkeen tai kun lämmitin käy."
     }
   },
   "entity": {

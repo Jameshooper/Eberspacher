@@ -70,6 +70,9 @@ CAR_READING_REUSE = timedelta(minutes=25)  # a reading this recent is used again
 # Readings outside this range (°C) are faulty, not weather, and never start the heater.
 PLAUSIBLE = (-60.0, 70.0)
 ANNOUNCE_AT = time(20, 0)  # the evening before, when a learned time is announced
+# A wake-up that comes later than this (the host was asleep or busy) does nothing: by then
+# the heater would no longer have the car ready in time.
+LATE_LIMIT = timedelta(minutes=15)
 
 
 @dataclass(frozen=True)
@@ -259,7 +262,6 @@ class ScheduleManager:
         self.leg = leg
         self.config = ScheduleConfig()
         self.last_result: str | None = None
-        self._last_start_date = None
         self._paused_shown = False  # whether last_result says the schedule is paused
         self._car_cache: tuple[datetime, float] | None = None
         # Bumped when the wake-ups are stopped, so a wake-up still waiting for the car gives up.
@@ -506,7 +508,18 @@ class ScheduleManager:
         cfg = self.config_for(local.date())
         if not cfg.enabled or WEEKDAYS[local.weekday()] not in cfg.weekdays:
             return
-        if self._last_start_date == local.date():
+        if self.coordinator.started_on.get(self.leg) == local.date().isoformat():
+            return
+        # Same tzinfo on both sides, so this is the wall-clock difference.
+        late = local - datetime.combine(local.date(), at, local.tzinfo)
+        if late > LATE_LIMIT:
+            _LOGGER.warning(
+                "The %s wake-up came %d min late, so the heater was not started",
+                at.strftime("%H:%M"),
+                late.total_seconds() // 60,
+            )
+            self.last_result = text(self.hass, "result_late", time=at.strftime("%H:%M"))
+            self._notify_listeners()
             return
         if self.paused_on(local.date()):
             self._set_paused_result()
@@ -558,7 +571,7 @@ class ScheduleManager:
                 text(self.hass, "failed_body", reason=failed[0]),
             )
         elif started:
-            self._last_start_date = local.date()
+            self.coordinator.async_note_started(self.leg, local.date())
             self.last_result = text(
                 self.hass,
                 f"result_started_{kind}",

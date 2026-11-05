@@ -107,7 +107,11 @@
         "description": "En värmare som står oanvänd i månader bör köras då och då så att bränsleledningar och pump hålls i gott skick. När den inte körts på så här många dagar får du ett meddelande (via aviseringstjänsten under Schema) och en notis under Reparationer, som upprepas varje vecka tills den körs.",
         "data": {
           "reminder_enabled": "Påminn mig",
-          "reminder_days": "Dagar utan körning"
+          "reminder_days": "Dagar utan körning",
+          "car_check_enabled": "Kontrollera varje vecka att bilen svarar"
+        },
+        "data_description": {
+          "car_check_enabled": "Varje söndag kl. 18:00 frågas bilen om temperaturen (det läser bara, värmaren startas aldrig). Om den inte svarar får du ett meddelande och en notis under Reparationer."
         }
       },
       "work": {
@@ -183,6 +187,10 @@
     "heater_idle": {
       "title": "Bilvärmaren har inte körts på ett tag",
       "description": "Värmaren har inte körts på {days} dagar. Kör den i ungefär 10 minuter så att bränsleledningar och pump hålls i gott skick. Den här notisen försvinner när den har körts."
+    },
+    "car_unreachable": {
+      "title": "Enheten i bilen svarar inte",
+      "description": "{name} svarade inte på veckans kontroll: den tillfrågades om temperaturen och svarade inte inom 3 minuter. Värmaren kanske inte startar från Home Assistant eller EasyStart-appen.\n\nKontrollera bilbatteriet och att EasyStart-enhetens SIM-kort är aktivt. Notisen försvinner efter nästa kontroll som får svar, eller när värmaren körs."
     }
   },
   "entity": {

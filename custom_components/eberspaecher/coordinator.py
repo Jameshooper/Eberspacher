@@ -13,6 +13,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
@@ -20,6 +21,7 @@ from .api import (
     EberspaecherAuthError,
     EberspaecherConnectionError,
 )
+from .carcheck import CarCheck
 from .learning import DepartureLearner
 from .reminder import ReminderManager
 from .schedule import ScheduleManager
@@ -98,6 +100,13 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.scheduler = ScheduleManager(hass, self)
         self.work_scheduler = ScheduleManager(hass, self, LEG_WORK)
         self.reminder = ReminderManager(hass, entry.entry_id)
+        self.car_check = CarCheck(hass, self)
+        # The day each schedule last started the heater, kept over restarts so a restart
+        # never lets it start a second time that day.
+        self.started_on: dict[str, str] = {}
+        self._started_store: Store[dict[str, Any]] = Store(
+            hass, 1, f"{DOMAIN}.{entry.entry_id}.schedule"
+        )
         # A newly learned time moves the start times.
         self.learner.async_add_listener(self.scheduler.async_replan)
         self.learner.async_add_listener(self.work_scheduler.async_replan)
@@ -129,6 +138,23 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.hass.config_entries.async_update_entry(
             entry, data={**entry.data, CONF_SCHEDULE_DEVICE: next(iter(self.data))}
         )
+
+    async def async_load_started(self) -> None:
+        stored = await self._started_store.async_load()
+        days = stored.get("started_on") if isinstance(stored, dict) else None
+        if not isinstance(days, dict):
+            return
+        for leg, day in days.items():
+            try:
+                self.started_on[str(leg)] = date.fromisoformat(str(day)).isoformat()
+            except ValueError:
+                continue
+
+    @callback
+    def async_note_started(self, leg: str, day: date) -> None:
+        """A schedule started the heater today."""
+        self.started_on[leg] = day.isoformat()
+        self._started_store.async_delay_save(lambda: {"started_on": dict(self.started_on)}, 5)
 
     @property
     def _issue_id(self) -> str:
@@ -168,6 +194,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self._failures = 0
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
         self.reminder.observe(result)
+        self.car_check.observe(result)
 
         heaters = [h for device in result.values() for h in device.heaters.values()]
         transitional = any(
@@ -259,6 +286,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
             self._cancel_refresh()
             self._cancel_refresh = None
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
+        await self._started_store.async_save({"started_on": dict(self.started_on)})
         await super().async_shutdown()
 
 

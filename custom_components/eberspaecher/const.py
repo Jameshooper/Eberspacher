@@ -63,6 +63,8 @@ CONF_VENT_RUNTIME = "vent_runtime"
 CONF_REMINDER_ENABLED = "reminder_enabled"
 CONF_REMINDER_DAYS = "reminder_days"
 DEFAULT_REMINDER_DAYS = 30
+# Weekly check that the unit in the car still answers (stored in the config entry options).
+CONF_CAR_CHECK_ENABLED = "car_check_enabled"
 
 # Learning when you leave (stored in the config entry options).
 CONF_LEARN_ENABLED = "learn_enabled"

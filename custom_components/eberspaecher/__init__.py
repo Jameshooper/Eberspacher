@@ -33,6 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry)
     coordinator = EberspaecherCoordinator(hass, entry, api)
     await coordinator.reminder.async_load()
     await coordinator.learner.async_load()
+    await coordinator.async_load_started()
     await coordinator.async_config_entry_first_refresh()
     coordinator.async_pin_schedule_device()
 
@@ -50,6 +51,7 @@ def _configure(coordinator: EberspaecherCoordinator, entry: EberspaecherConfigEn
     coordinator.scheduler.async_configure(options)
     coordinator.work_scheduler.async_configure(options)
     coordinator.reminder.async_configure(options)
+    coordinator.car_check.async_configure(options)
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> None:
@@ -64,7 +66,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigE
 
 async def async_remove_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> None:
     """Delete what the integration kept about you, such as the learned departures."""
-    for name in ("departures", "reminder"):
+    for name in ("departures", "reminder", "schedule"):
         await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.{name}").async_remove()
 
 
@@ -74,5 +76,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry
     entry.runtime_data.work_scheduler.async_stop()
     await entry.runtime_data.learner.async_shutdown()
     await entry.runtime_data.reminder.async_shutdown()
+    entry.runtime_data.car_check.async_stop()
     await entry.runtime_data.async_shutdown()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

@@ -90,5 +90,13 @@ async def async_get_config_entry_diagnostics(
         "paused_until": (
             coordinator.paused_until.isoformat() if coordinator.paused_until else None
         ),
+        "car_check": {
+            "last_checked": (
+                coordinator.car_check.last_checked.isoformat()
+                if coordinator.car_check.last_checked
+                else None
+            ),
+            "last_ok": coordinator.car_check.last_ok,
+        },
         "devices": devices,
     }

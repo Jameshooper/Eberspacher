@@ -39,6 +39,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_skipped_unknown": "Skipped: your phone's location is unknown",
         "plan_title": "Car ready time",
         "plan_body": "Tomorrow the car will be ready by {time}, learned from your recent departures.",
+        "result_late": "Skipped: the {time} wake-up came too late",
+        "car_check_title": "Car unit not answering",
+        "car_check_body": "{name} did not answer this week's check. The heater may not start from Home Assistant or the app. Check the car battery and the EasyStart unit's SIM.",
     },
     "de": {
         "started_title_heating": "Auto-Heizung gestartet",
@@ -69,6 +72,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_skipped_unknown": "Übersprungen: der Standort deines Handys ist unbekannt",
         "plan_title": "Bereitzeit des Autos",
         "plan_body": "Morgen ist das Auto um {time} fertig, gelernt aus deinen letzten Abfahrten.",
+        "result_late": "Übersprungen: der Weckzeitpunkt {time} kam zu spät",
+        "car_check_title": "Gerät im Auto antwortet nicht",
+        "car_check_body": "{name} hat auf die wöchentliche Prüfung nicht geantwortet. Die Standheizung startet eventuell nicht über Home Assistant oder die App. Prüfe die Autobatterie und die SIM des EasyStart-Geräts.",
     },
     "sv": {
         "started_title_heating": "Bilvärmen startad",
@@ -99,6 +105,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_skipped_unknown": "Hoppade över: telefonens plats är okänd",
         "plan_title": "Bilens klartid",
         "plan_body": "I morgon är bilen klar till {time}, inlärt från dina senaste avfärder.",
+        "result_late": "Hoppade över: väckningen {time} kom för sent",
+        "car_check_title": "Enheten i bilen svarar inte",
+        "car_check_body": "{name} svarade inte på veckans kontroll. Värmaren kanske inte startar från Home Assistant eller appen. Kontrollera bilbatteriet och EasyStart-enhetens SIM-kort.",
     },
     "fi": {
         "started_title_heating": "Auton lämmitys käynnistetty",
@@ -129,6 +138,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_skipped_unknown": "Ohitettu: puhelimesi sijainti ei ole tiedossa",
         "plan_title": "Auton valmistumisaika",
         "plan_body": "Huomenna auto on valmis klo {time}, opittu viimeaikaisista lähdöistäsi.",
+        "result_late": "Ohitettu: herätys {time} tuli liian myöhään",
+        "car_check_title": "Auton laite ei vastaa",
+        "car_check_body": "{name} ei vastannut viikon tarkistukseen. Lämmitin ei ehkä käynnisty Home Assistantista tai sovelluksesta. Tarkista auton akku ja EasyStart-laitteen SIM-kortti.",
     },
 }
 

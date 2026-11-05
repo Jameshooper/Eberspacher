@@ -37,6 +37,7 @@ from .api import (
     EberspaecherConnectionError,
 )
 from .const import (
+    CONF_CAR_CHECK_ENABLED,
     CONF_COLD_BELOW,
     CONF_COLD_RUNTIME,
     CONF_IDLE_INTERVAL,
@@ -369,6 +370,7 @@ class EberspaecherOptionsFlow(OptionsFlow):
                 **{
                     CONF_REMINDER_ENABLED: bool(user_input[CONF_REMINDER_ENABLED]),
                     CONF_REMINDER_DAYS: int(user_input[CONF_REMINDER_DAYS]),
+                    CONF_CAR_CHECK_ENABLED: bool(user_input.get(CONF_CAR_CHECK_ENABLED, True)),
                 }
             )
 
@@ -385,6 +387,10 @@ class EberspaecherOptionsFlow(OptionsFlow):
                         mode=NumberSelectorMode.BOX,
                     )
                 ),
+                vol.Required(
+                    CONF_CAR_CHECK_ENABLED,
+                    default=bool(self.config_entry.options.get(CONF_CAR_CHECK_ENABLED, True)),
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="reminder", data_schema=schema)

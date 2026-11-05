@@ -107,7 +107,11 @@
         "description": "Eine Standheizung, die monatelang nicht benutzt wird, sollte ab und zu laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben. Läuft sie so viele Tage nicht, bekommst du eine Nachricht (über den unter Zeitplan eingestellten Benachrichtigungsdienst) und einen Hinweis unter Reparaturen, wöchentlich wiederholt, bis sie läuft.",
         "data": {
           "reminder_enabled": "Erinnern",
-          "reminder_days": "Tage ohne Lauf"
+          "reminder_days": "Tage ohne Lauf",
+          "car_check_enabled": "Wöchentlich prüfen, ob das Auto antwortet"
+        },
+        "data_description": {
+          "car_check_enabled": "Jeden Sonntag um 18:00 wird das Auto nach der Temperatur gefragt (das liest nur, die Standheizung startet nie). Antwortet es nicht, bekommst du eine Nachricht und einen Hinweis unter Reparaturen."
         }
       },
       "work": {
@@ -183,6 +187,10 @@
     "heater_idle": {
       "title": "Standheizung lief längere Zeit nicht",
       "description": "Die Standheizung lief seit {days} Tagen nicht. Lass sie etwa 10 Minuten laufen, damit Kraftstoffleitungen und Pumpe in Ordnung bleiben. Dieser Hinweis verschwindet, sobald sie gelaufen ist."
+    },
+    "car_unreachable": {
+      "title": "Gerät im Auto antwortet nicht",
+      "description": "{name} hat auf die wöchentliche Prüfung nicht geantwortet: Es wurde nach der Temperatur gefragt und hat innerhalb von 3 Minuten nicht geantwortet. Die Standheizung startet eventuell nicht über Home Assistant oder die EasyStart-App.\n\nPrüfe die Autobatterie und ob die SIM des EasyStart-Geräts aktiv ist. Dieser Hinweis verschwindet nach der nächsten beantworteten Prüfung oder sobald die Standheizung läuft."
     }
   },
   "entity": {

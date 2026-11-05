@@ -107,7 +107,11 @@
         "description": "A heater that sits unused for months should be run now and then so the fuel lines and pump stay in working order. When it has not run for this many days you get a message (through the notification service set under Schedule) and a notice under Repairs, repeated weekly until it runs.",
         "data": {
           "reminder_enabled": "Remind me",
-          "reminder_days": "Days without a run"
+          "reminder_days": "Days without a run",
+          "car_check_enabled": "Check weekly that the car answers"
+        },
+        "data_description": {
+          "car_check_enabled": "Every Sunday at 18:00 the car is asked for a temperature (this only reads, it never starts the heater). If it does not answer, you get a message and a notice under Repairs."
         }
       },
       "work": {
@@ -183,6 +187,10 @@
     "heater_idle": {
       "title": "Car heater has not run for a while",
       "description": "The heater has not run for {days} days. Run it for about 10 minutes so the fuel lines and pump stay in working order. This notice goes away once it has run."
+    },
+    "car_unreachable": {
+      "title": "Car unit not answering",
+      "description": "{name} did not answer the weekly check: it was asked for a temperature and gave no answer within 3 minutes. The heater may not start from Home Assistant or the EasyStart app.\n\nCheck the car battery and that the EasyStart unit's SIM is active. This notice goes away after the next check that gets an answer, or once the heater runs."
     }
   },
   "entity": {

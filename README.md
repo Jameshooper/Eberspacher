@@ -117,6 +117,9 @@ get a "not needed" message at the last start time.
   heater's last reading is used (press **Request temperature** to refresh it). With no
   reading at all, the heater is not started and you get a "not started" message at the
   last start time.
+- **Once a day, on time:** each schedule starts the heater at most once a day, also when
+  Home Assistant restarts in between. A wake-up that comes more than 15 minutes late (the
+  machine was asleep or busy) does not start the heater.
 - **Pausing:** set the **Pause until** date for a few days without the car (both schedules skip up to and including that day and resume the next), or use the **Schedule** switch to turn it off until you turn it back on.
 - **Notifications:** a message when the heater starts, when starting fails, and when it is
   not needed. Only a notify service is accepted (for example `notify.mobile_app_your_phone`).
@@ -221,6 +224,18 @@ the day the integration first saw the heater, so there is no false alarm right a
 It only sees runs that Home Assistant started, or that were running at a status check, so a
 short run started from the app and finished between checks may not be noticed.
 
+## Weekly car check
+
+The integration checks the cloud every few minutes, but the unit in the car can stop
+answering while the cloud is fine, for example when its SIM has expired or the car battery
+is low. So every Sunday at 18:00 the car is asked for a temperature. This only reads: it
+never starts the heater. If no answer comes within 3 minutes, you get a message and a notice
+under **Settings → Repairs**, so you know before a cold Monday morning. The notice goes away
+after the next check that gets an answer, or once the heater runs. If the cloud itself is
+down, the check says nothing (the cloud has its own notice).
+
+It is on by default. Turn it off under **Configure → Idle reminder**.
+
 ## Diagnostics and repairs
 
 - **Download diagnostics** on the integration page gives a file for bug reports. Your
@@ -241,6 +256,11 @@ reminder) and the schedule's last result use the same language.
 - With a binary sensor as the departure sensor, the state is `on` (or `off`), not `CarPlay`.
 - Learning needs your phone's location and a departure sensor. It cannot know about days
   you leave at an unusual time for a reason it cannot see.
+
+- On the day the clocks go forward, a start time between 03:00 and 03:59 does not run (that
+  hour does not exist). Only possible when the car must be ready before 05:40 on a Sunday.
+- If the device gives temperature readings without a time, the weekly car check cannot tell
+  a new reading from an old one, so it can miss a silent car.
 
 - Only tested against one device. The device list and heater fields are read defensively,
   but other models may expose different fields.
