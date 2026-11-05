@@ -102,6 +102,11 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.learner.async_add_listener(self.work_scheduler.async_replan)
 
     @property
+    def primary_imei(self) -> str | None:
+        """The device the schedule belongs to: the first one, where its switch is."""
+        return next(iter(self.data or {}), None)
+
+    @property
     def _issue_id(self) -> str:
         return f"cloud_unreachable_{self.config_entry.entry_id}"
 

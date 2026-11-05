@@ -52,7 +52,7 @@ async def async_setup_entry(
             if coordinator.lists_mode(imei, address, MODE_VENTILATION):
                 entities.append(EberspaecherVentilationSwitch(coordinator, imei, address))
     # The schedule is one per account, so its switch goes on the first device only.
-    first = next(iter(coordinator.data), None)
+    first = coordinator.primary_imei
     if first is not None:
         entities.append(EberspaecherScheduleSwitch(coordinator, entry, first))
     async_add_entities(entities)
@@ -60,11 +60,20 @@ async def async_setup_entry(
     async_get_current_platform().async_register_entity_service(
         SERVICE_START,
         {
-            vol.Optional("runtime"): vol.All(vol.Coerce(int), vol.Range(min=1, max=600)),
+            vol.Optional("runtime"): vol.All(
+                _not_bool, vol.Coerce(int), vol.Range(min=1, max=600)
+            ),
             vol.Optional("mode"): vol.In([MODE_HEATING, MODE_VENTILATION]),
         },
         "async_start_heating",
     )
+
+
+def _not_bool(value: Any) -> Any:
+    """A run time is a number of minutes, not true or false (which would read as 1 or 0)."""
+    if isinstance(value, bool):
+        raise vol.Invalid("runtime must be a number of minutes")
+    return value
 
 
 class EberspaecherRunSwitch(EberspaecherEntity, SwitchEntity):

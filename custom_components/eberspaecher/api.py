@@ -9,6 +9,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+import time
+from urllib.parse import quote
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -27,6 +30,11 @@ HEADER_TOKEN = "ESCW-Auth-Token"
 # machine, so it is safe to try again (also for start/stop commands).
 CONNECT_ATTEMPTS = 3
 CONNECT_RETRY_DELAY = 3  # seconds
+# A refused (403) request is retried with a new login only when the token is older than
+# this. A token that was just issued and is still refused will not be helped by another.
+FRESH_TOKEN_SECONDS = 60
+# What a device id may look like. Anything else is skipped, so it never ends up in a path.
+IMEI_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 
 class EberspaecherError(Exception):
@@ -39,6 +47,26 @@ class EberspaecherAuthError(EberspaecherError):
 
 class EberspaecherConnectionError(EberspaecherError):
     """The service could not be reached or returned an unexpected error."""
+
+
+def _masked(path: str) -> str:
+    """The path with the device id cut to its last four characters, for messages."""
+    return re.sub(r"/calls/([^/]*?)([^/]{0,4})(?=/|$)", r"/calls/…\2", path)
+
+
+def _detail(err: BaseException) -> str:
+    """What went wrong, without the URL (it holds the device id)."""
+    if isinstance(err, aiohttp.ClientResponseError):
+        return f"HTTP {err.status}"
+    if isinstance(err, TimeoutError):
+        return "timed out"
+    return str(err) or type(err).__name__
+
+
+def _check_redirect(resp: aiohttp.ClientResponse) -> None:
+    """Redirects are not followed, so the login headers never go anywhere else."""
+    if 300 <= resp.status < 400:
+        raise EberspaecherConnectionError(f"Unexpected redirect (HTTP {resp.status})")
 
 
 async def _retry_connect(func: Callable[[], Awaitable[Any]]) -> Any:
@@ -65,6 +93,7 @@ class EberspaecherApi:
         self._email = email
         self._password = password
         self._token: str | None = None
+        self._token_time = 0.0
         self._login_lock = asyncio.Lock()
 
     async def async_login(self) -> None:
@@ -76,8 +105,12 @@ class EberspaecherApi:
         }
         async def _post() -> Any:
             async with self._session.post(
-                f"{BASE_URL}/authenticate", headers=headers, timeout=TIMEOUT
+                f"{BASE_URL}/authenticate",
+                headers=headers,
+                timeout=TIMEOUT,
+                allow_redirects=False,
             ) as resp:
+                _check_redirect(resp)
                 if resp.status in (400, 401, 403):
                     raise EberspaecherAuthError("Invalid email or password")
                 resp.raise_for_status()
@@ -88,7 +121,7 @@ class EberspaecherApi:
         except EberspaecherError:
             raise
         except (TimeoutError, aiohttp.ClientError) as err:
-            raise EberspaecherConnectionError(f"Login request failed: {err}") from err
+            raise EberspaecherConnectionError(f"Login request failed: {_detail(err)}") from err
         except ValueError as err:
             # A 200 with a non-JSON body, e.g. a maintenance page.
             raise EberspaecherConnectionError(
@@ -96,9 +129,10 @@ class EberspaecherApi:
             ) from err
 
         token = data.get("token") if isinstance(data, dict) else None
-        if not token:
+        if not token or not isinstance(token, str):
             raise EberspaecherAuthError("Login response did not contain a token")
         self._token = token
+        self._token_time = time.monotonic()
 
     async def _async_ensure_token(self) -> None:
         async with self._login_lock:
@@ -122,6 +156,7 @@ class EberspaecherApi:
         """
         await self._async_ensure_token()
         token = self._token
+        token_age = time.monotonic() - self._token_time
         headers = {HEADER_TOKEN: token or "", "Accept": "application/json"}
         async def _send() -> tuple[int, str]:
             async with self._session.request(
@@ -131,7 +166,9 @@ class EberspaecherApi:
                 params=params,
                 json=payload,
                 timeout=TIMEOUT,
+                allow_redirects=False,
             ) as resp:
+                _check_redirect(resp)
                 if resp.status not in (401, 403):
                     resp.raise_for_status()
                 return resp.status, await resp.text()
@@ -140,9 +177,13 @@ class EberspaecherApi:
             status, text = await _retry_connect(_send)
         except (TimeoutError, aiohttp.ClientError) as err:
             raise EberspaecherConnectionError(
-                f"{method} {path} failed: {err}"
+                f"{method} {_masked(path)} failed: {_detail(err)}"
             ) from err
 
+        if status == 403 and token_age < FRESH_TOKEN_SECONDS:
+            # A token this new is not the problem: logging in again would only resend
+            # the password for every refused request.
+            raise EberspaecherConnectionError(f"{method} {_masked(path)} was refused (403)")
         if status in (401, 403):
             # Only drop the token if no other request has replaced it yet.
             if self._token == token:
@@ -152,7 +193,9 @@ class EberspaecherApi:
                     method, path, params=params, payload=payload, retry=False
                 )
             if status == 403:
-                raise EberspaecherConnectionError(f"{method} {path} was refused (403)")
+                raise EberspaecherConnectionError(
+                    f"{method} {_masked(path)} was refused (403)"
+                )
             raise EberspaecherAuthError("Session was rejected")
 
         if not text:
@@ -169,11 +212,18 @@ class EberspaecherApi:
             "/calls",
             params={"fetchHeater": "NO", "email": "CURRENT", "page": 0, "size": 50},
         )
-        return [item for item in _as_list(data) if item.get("imei")]
+        devices = []
+        for item in _as_list(data):
+            imei = str(item.get("imei") or "")
+            if IMEI_PATTERN.fullmatch(imei):
+                devices.append(item)
+            elif imei:
+                _LOGGER.warning("Skipping a device with an unusable id")
+        return devices
 
     async def async_get_heaters(self, imei: str) -> list[dict[str, Any]]:
         """Return the heaters of one device with their current state."""
-        data = await self._async_request("GET", f"/calls/{imei}/heaters")
+        data = await self._async_request("GET", f"/calls/{_segment(imei)}/heaters")
         return _as_list(data)
 
     async def async_set_heater(
@@ -190,12 +240,17 @@ class EberspaecherApi:
             "altitudeFunction": None,
         }
         await self._async_request(
-            "PUT", f"/calls/{imei}/heaters/{address}", payload=payload
+            "PUT", f"/calls/{_segment(imei)}/heaters/{int(address)}", payload=payload
         )
 
     async def async_request_temperature(self, imei: str) -> None:
         """Ask the device to measure and report its temperature."""
-        await self._async_request("POST", f"/calls/{imei}/temperature", payload={})
+        await self._async_request("POST", f"/calls/{_segment(imei)}/temperature", payload={})
+
+
+def _segment(imei: str) -> str:
+    """A device id as one path segment."""
+    return quote(str(imei), safe="")
 
 
 def _as_list(data: Any) -> list[dict[str, Any]]:

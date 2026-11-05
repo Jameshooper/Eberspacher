@@ -162,6 +162,13 @@ class EberspaecherConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
+def _is_notify(service: Any) -> bool:
+    """Empty, a bare notify name, or notify.<name>: never another kind of action."""
+    service = str(service or "").strip()
+    domain, _, name = service.partition(".")
+    return not service or not name or domain == "notify"
+
+
 def _temperature() -> NumberSelector:
     return NumberSelector(
         NumberSelectorConfig(
@@ -243,6 +250,8 @@ class EberspaecherOptionsFlow(OptionsFlow):
                 errors["base"] = "no_weekdays"
             elif not longest_runtime_fits(self._config(**user_input)):
                 errors["base"] = "runtime_too_long"
+            elif not _is_notify(user_input.get(CONF_NOTIFY_SERVICE)):
+                errors["base"] = "notify_not_notify"
             else:
                 # A cleared optional field is missing from the input; clear it too.
                 return self._save(

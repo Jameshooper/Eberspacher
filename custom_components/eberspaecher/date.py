@@ -21,7 +21,7 @@ async def async_setup_entry(
 ) -> None:
     """Create the pause date, once per account, on the first device."""
     coordinator = entry.runtime_data
-    first = next(iter(coordinator.data), None)
+    first = coordinator.primary_imei
     if first is not None:
         async_add_entities([EberspaecherPauseUntil(coordinator, first)])
 

@@ -36,7 +36,7 @@ async def async_setup_entry(
             entities.append(EberspaecherRemainingSensor(coordinator, imei, address))
             entities.append(EberspaecherTemperatureSensor(coordinator, imei, address))
     # The reminder is one per account, so its sensor goes on the first device only.
-    first = next(iter(coordinator.data), None)
+    first = coordinator.primary_imei
     if first is not None:
         entities.append(EberspaecherLastHeatedSensor(coordinator, first))
         entities.append(EberspaecherLearnedSensor(coordinator, first, LEG_HOME))

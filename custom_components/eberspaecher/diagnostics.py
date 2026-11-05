@@ -30,6 +30,12 @@ TO_REDACT = {
     "serialNumber",
     "name",
     "description",
+    # Identifiers the cloud may add to a device or heater
+    "iccid",
+    "imsi",
+    "msisdn",
+    "phoneNumber",
+    "ownerEmail",
 }
 
 

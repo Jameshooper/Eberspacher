@@ -112,13 +112,17 @@ heater only if the temperature belongs to that start time's band. It starts at m
 day and leaves a heater that is already running alone. On a day that needs no heating you
 get a "not needed" message at the last start time.
 
-- **Temperature source:** the sensor you choose (°C or °F). If it is unavailable, the
+- **Temperature source:** the sensor you choose (°C or °F). A reading that cannot be real
+  (not a number, or outside -60 to 70 °C) counts as no reading. If the sensor is unavailable, the
   heater's last reading is used (press **Request temperature** to refresh it). With no
   reading at all, the heater is not started and you get a "not started" message at the
   last start time.
 - **Pausing:** set the **Pause until** date for a few days without the car (both schedules skip up to and including that day and resume the next), or use the **Schedule** switch to turn it off until you turn it back on.
 - **Notifications:** a message when the heater starts, when starting fails, and when it is
-  not needed. Leave the service empty for none.
+  not needed. Only a notify service is accepted (for example `notify.mobile_app_your_phone`).
+  Leave it empty for none.
+- **Several devices on one account:** the schedule only controls the device that has the
+  **Schedule** switch (the first one the account lists), and only uses that device's reading.
 - **The longest run time must fit** between midnight and the ready-by time.
 
 ### Summer ventilation
@@ -217,7 +221,9 @@ short run started from the app and finished between checks may not be noticed.
 ## Diagnostics and repairs
 
 - **Download diagnostics** on the integration page gives a file for bug reports. Your
-  email, password and device ID are removed from it.
+  email, password, device ID, the entities you chose and the device's identifiers are removed
+  from it. Home Assistant lets any signed-in user download it, so nothing personal is kept in it.
+- Error messages show only the last four characters of the device ID.
 - If the cloud cannot be reached for six checks in a row, a notice appears under
   **Settings → Repairs**. It goes away by itself when the connection works again.
 

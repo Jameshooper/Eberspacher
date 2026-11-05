@@ -108,6 +108,21 @@ async def test_403_on_resource_is_not_treated_as_bad_password(hass, aioclient_mo
     with pytest.raises(EberspaecherConnectionError) as info:
         await api(hass).async_get_heaters(IMEI)
     assert not isinstance(info.value, EberspaecherAuthError)
+    # the token was just issued, so logging in again (resending the password) cannot help
+    assert len(calls_to(aioclient_mock, "POST", "/authenticate")) == 1
+
+
+async def test_403_with_an_old_token_logs_in_again_once(hass, aioclient_mock, monkeypatch):
+    """An old token may have expired with a 403: one new login is tried."""
+    from custom_components.eberspaecher import api as api_module
+
+    aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": "t"})
+    aioclient_mock.get(f"{BASE_URL}/calls/{IMEI}/heaters", status=403)
+    client = api(hass)
+    await client.async_login()
+    monkeypatch.setattr(client, "_token_time", client._token_time - 3600)
+    with pytest.raises(EberspaecherConnectionError):
+        await client.async_get_heaters(IMEI)
     assert len(calls_to(aioclient_mock, "POST", "/authenticate")) == 2
 
 

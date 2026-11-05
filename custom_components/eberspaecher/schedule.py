@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
@@ -66,6 +67,8 @@ SERVICE_START = "start_heating"
 CAR_READING_WAIT = 30  # seconds the car gets to answer a temperature request
 CAR_READING_TRIES = 2  # checks for the answer before giving up
 CAR_READING_REUSE = timedelta(minutes=25)  # a reading this recent is used again, not asked anew
+# Readings outside this range (°C) are faulty, not weather, and never start the heater.
+PLAUSIBLE = (-60.0, 70.0)
 ANNOUNCE_AT = time(20, 0)  # the evening before, when a learned time is announced
 
 
@@ -182,8 +185,17 @@ class Action:
     runtime: int
 
 
+def plausible(temperature: float | None) -> float | None:
+    """The temperature, or None when it cannot be a real outside temperature."""
+    if temperature is None or not math.isfinite(temperature):
+        return None
+    low, high = PLAUSIBLE
+    return temperature if low <= temperature <= high else None
+
+
 def choose_action(cfg: ScheduleConfig, temperature: float | None) -> Action | None:
     """The action for this temperature, or None when nothing is needed or it is unknown."""
+    temperature = plausible(temperature)
     if temperature is None:
         return None
     if cfg.vent_enabled and temperature >= cfg.vent_above:
@@ -252,6 +264,8 @@ class ScheduleManager:
         self._car_cache: tuple[datetime, float] | None = None
         # Bumped when the wake-ups are stopped, so a wake-up still waiting for the car gives up.
         self._generation = 0
+        # One wake-up at a time, so two cannot both start the heater.
+        self._run_lock = asyncio.Lock()
         self._unsubs: list[CALLBACK_TYPE] = []
         self._timers: list[CALLBACK_TYPE] = []
         self._listeners: list[Callable[[], None]] = []
@@ -376,11 +390,17 @@ class ScheduleManager:
             unit = state.attributes.get("unit_of_measurement")
         if value is not None and unit == "°F":
             value = round((value - 32) * 5 / 9, 1)
-        return value
+        return plausible(value)
+
+    def _devices(self) -> dict[str, Any]:
+        """The device this schedule controls (never the other devices on the account)."""
+        data = self.coordinator.data or {}
+        imei = self.coordinator.primary_imei
+        return {imei: data[imei]} if imei in data else {}
 
     def _raw_reading(self) -> Any:
         """The heater's last reading as the cloud gives it (with its timestamp, if any)."""
-        for device in (self.coordinator.data or {}).values():
+        for device in self._devices().values():
             for heater in device.heaters.values():
                 raw = heater.get("lastMeasuredTemperature")
                 if parse_temperature(raw) is not None:
@@ -388,7 +408,7 @@ class ScheduleManager:
         return None
 
     def _heater_reading(self) -> float | None:
-        return parse_temperature(self._raw_reading())
+        return plausible(parse_temperature(self._raw_reading()))
 
     async def _car_reading(self) -> float | None:
         """Ask the car for a fresh temperature and wait for its answer.
@@ -403,7 +423,7 @@ class ScheduleManager:
         generation = self._generation
         before = self._raw_reading()
         asked = False
-        for imei in list((self.coordinator.data or {}).keys()):
+        for imei in list(self._devices()):
             try:
                 await self.coordinator.api.async_request_temperature(imei)
                 asked = True
@@ -417,7 +437,7 @@ class ScheduleManager:
                 return None  # stopped or reconfigured meanwhile
             await self.coordinator.async_refresh()
             raw = self._raw_reading()
-            value = parse_temperature(raw)
+            value = plausible(parse_temperature(raw))
             if value is None:
                 continue
             # With a timestamp, a new answer is one that differs from what was there before.
@@ -471,13 +491,17 @@ class ScheduleManager:
         if place is None:
             # Leaving work only runs when it knows you are away; leaving home runs anyway.
             return "result_skipped_unknown" if self.leg == LEG_WORK else None
-        at_home = place.casefold() == "home"
+        at_home = place.strip().casefold() == "home"
         if self.leg == LEG_HOME:
             return None if at_home else "result_skipped_home"
         return "result_skipped_work" if at_home else None
 
     async def async_run(self, at: time, now: datetime) -> None:
         """One wake-up at start time `at`."""
+        async with self._run_lock:
+            await self._async_run(at, now)
+
+    async def _async_run(self, at: time, now: datetime) -> None:
         local = dt_util.as_local(now)
         cfg = self.config_for(local.date())
         if not cfg.enabled or WEEKDAYS[local.weekday()] not in cfg.weekdays:
@@ -558,7 +582,7 @@ class ScheduleManager:
         registry = er.async_get(self.hass)
         started = 0
         errors: list[str] = []
-        for imei, device in (self.coordinator.data or {}).items():
+        for imei, device in self._devices().items():
             for address, heater in device.heaters.items():
                 if heater.get("state") == STATE_ON:
                     continue

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -21,6 +22,10 @@ async def async_notify(
     domain, _, name = service.partition(".")
     if not name:
         domain, name = "notify", service
+    if domain != "notify":
+        # Only notifications: this setting must not become a way to run other actions.
+        _LOGGER.warning("Not sending: %s is not a notify service", service)
+        return
     if not hass.services.has_service(domain, name):
         _LOGGER.warning("Notify service %s.%s does not exist", domain, name)
         return
@@ -40,6 +45,7 @@ def parse_temperature(value: Any) -> float | None:
     if value is None or isinstance(value, bool):
         return None
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return None
+    return number if math.isfinite(number) else None

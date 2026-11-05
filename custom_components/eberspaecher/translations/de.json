@@ -148,7 +148,8 @@
       "vent_below_heating": "Die Lüftung muss bei einer höheren Temperatur beginnen als „Nicht heizen über“",
       "learn_needs_signal": "Wähle sowohl den Abfahrtssensor als auch den Handy-Standort",
       "work_needs_tracker": "Feierabend braucht den Standort deines Handys, damit es weiß, dass du nicht zu Hause bist. Wähle ihn zuerst unter Abfahrtszeiten lernen (das Lernen selbst kann aus bleiben).",
-      "learn_state_binary": "Ein Binärsensor ist on oder off: gib on (oder off) als Zustand ein"
+      "learn_state_binary": "Ein Binärsensor ist on oder off: gib on (oder off) als Zustand ein",
+      "notify_not_notify": "Wähle einen Benachrichtigungsdienst, zum Beispiel notify.mobile_app_dein_handy"
     }
   },
   "selector": {

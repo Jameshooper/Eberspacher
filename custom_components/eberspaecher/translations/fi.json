@@ -148,7 +148,8 @@
       "vent_below_heating": "Tuuletuksen on alettava korkeammasta lämpötilasta kuin Ei lämmitystä yli",
       "learn_needs_signal": "Valitse sekä lähtöanturi että puhelimen sijainti",
       "work_needs_tracker": "Töistä lähtö tarvitsee puhelimesi sijainnin, jotta se tietää, ettet ole kotona. Valitse se ensin kohdassa Opi lähtöajat (itse oppiminen voi olla pois päältä).",
-      "learn_state_binary": "Binäärianturi on joko on tai off: anna tilaksi on (tai off)"
+      "learn_state_binary": "Binäärianturi on joko on tai off: anna tilaksi on (tai off)",
+      "notify_not_notify": "Valitse ilmoituspalvelu, esimerkiksi notify.mobile_app_puhelimesi"
     }
   },
   "selector": {
