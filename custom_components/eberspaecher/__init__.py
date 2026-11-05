@@ -34,6 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry)
     await coordinator.reminder.async_load()
     await coordinator.learner.async_load()
     await coordinator.async_config_entry_first_refresh()
+    coordinator.async_pin_schedule_device()
 
     entry.runtime_data = coordinator
     _configure(coordinator, entry)

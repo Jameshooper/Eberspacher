@@ -122,7 +122,9 @@ get a "not needed" message at the last start time.
   not needed. Only a notify service is accepted (for example `notify.mobile_app_your_phone`).
   Leave it empty for none.
 - **Several devices on one account:** the schedule only controls the device that has the
-  **Schedule** switch (the first one the account lists), and only uses that device's reading.
+  **Schedule** switch, and only uses that device's reading. That device is chosen when the
+  integration is first set up (the first one the account lists) and kept, even if the account
+  later lists its devices in another order. If it leaves the account, the schedule does nothing.
 - **The longest run time must fit** between midnight and the ready-by time.
 
 ### Summer ventilation

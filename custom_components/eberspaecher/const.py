@@ -84,3 +84,5 @@ LEG_HOME = "home"
 LEG_WORK = "work"
 
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+# The device the schedule controls, chosen once and kept (config entry data).
+CONF_SCHEDULE_DEVICE = "schedule_device"

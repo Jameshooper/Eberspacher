@@ -333,3 +333,59 @@ async def test_sec_dev_10_hostile_cloud_payload_is_stored_as_text(hass, aioclien
     assert device.name == name                              # plain text; the frontend escapes
     low, high, _ = entry.runtime_data.runtime_limits(IMEI, 1)
     assert low >= 1                                         # negative minimum ignored
+
+
+# --- SEC-DEV-02 bypass review: the controlled device is pinned ----------------------
+
+def list_devices(mock, order, temps=None):
+    temps = temps or {}
+    mock.clear_requests()
+    mock.post(f"{BASE_URL}/authenticate", json={"token": "tok-1"})
+    mock.get(f"{BASE_URL}/calls", json=[{"imei": i, "name": i} for i in order])
+    for imei in order:
+        mock.get(f"{BASE_URL}/calls/{imei}/heaters",
+                 json=[heater(lastMeasuredTemperature={"temperature": temps.get(imei, -12)})])
+        mock.put(f"{BASE_URL}/calls/{imei}/heaters/1", text="")
+
+
+async def test_sec_dev_02_reordered_device_list_does_not_move_the_schedule(hass, two_cars):
+    entry, m = two_cars
+    assert entry.data["schedule_device"] == IMEI
+    list_devices(m, [OTHER, IMEI])                      # the cloud now lists the other car first
+    entry.runtime_data._calls = []                      # device list cache expired
+    await entry.runtime_data.async_refresh()
+    await entry.runtime_data.scheduler.async_run(time(6, 30), at(6, 30))
+    assert puts_to(m, OTHER) == []
+    assert len(puts_to(m, IMEI)) == 1                   # legitimate start still happens
+
+
+async def test_sec_dev_02_schedule_stops_when_its_device_leaves_the_account(hass, two_cars, caplog):
+    entry, m = two_cars
+    list_devices(m, [OTHER])
+    entry.runtime_data._calls = []
+    await entry.runtime_data.async_refresh()
+    await entry.runtime_data.scheduler.async_run(time(6, 30), at(6, 30))
+    assert puts_to(m, OTHER) == []                      # fails closed: no other car takes over
+    assert entry.runtime_data.primary_imei is None
+
+
+async def test_sec_dev_02_pinned_device_survives_a_restart_with_another_order(hass, two_cars):
+    from homeassistant.helpers import entity_registry as er
+
+    entry, m = two_cars
+    list_devices(m, [OTHER, IMEI])
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.primary_imei == IMEI
+    reg = er.async_get(hass)
+    assert reg.async_get_entity_id("switch", DOMAIN, f"{IMEI}_schedule")
+    assert reg.async_get_entity_id("switch", DOMAIN, f"{OTHER}_schedule") is None
+    await entry.runtime_data.scheduler.async_run(time(6, 30), at(6, 30))
+    assert puts_to(m, OTHER) == [] and len(puts_to(m, IMEI)) == 1
+
+
+async def test_sec_dev_02_existing_install_is_pinned_to_its_current_device(hass, cloud, entry):
+    """An entry from before this change gets the device it already controls."""
+    assert "schedule_device" not in entry.data
+    await setup(hass, entry)
+    assert entry.data["schedule_device"] == IMEI

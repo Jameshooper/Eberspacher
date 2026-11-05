@@ -24,6 +24,7 @@ from .learning import DepartureLearner
 from .reminder import ReminderManager
 from .schedule import ScheduleManager
 from .const import (
+    CONF_SCHEDULE_DEVICE,
     CALLS_CACHE_SECONDS,
     CONF_IDLE_INTERVAL,
     DEFAULT_IDLE_INTERVAL,
@@ -103,8 +104,31 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
 
     @property
     def primary_imei(self) -> str | None:
-        """The device the schedule belongs to: the first one, where its switch is."""
-        return next(iter(self.data or {}), None)
+        """The device the schedule belongs to, where its switch is.
+
+        It is chosen once (see `async_pin_schedule_device`) and kept, so a device list in
+        another order never moves the schedule to another car. If that device is no
+        longer on the account there is none: the schedule then controls nothing.
+        """
+        imei = self.config_entry.data.get(CONF_SCHEDULE_DEVICE)
+        return imei if imei in (self.data or {}) else None
+
+    @callback
+    def async_pin_schedule_device(self) -> None:
+        """Keep the first device as the schedule's, unless one was kept before."""
+        entry = self.config_entry
+        if not self.data:
+            return
+        if kept := entry.data.get(CONF_SCHEDULE_DEVICE):
+            if kept not in self.data:
+                _LOGGER.warning(
+                    "The device the schedule controls is no longer on the account; "
+                    "the schedule does nothing until it is back"
+                )
+            return
+        self.hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_SCHEDULE_DEVICE: next(iter(self.data))}
+        )
 
     @property
     def _issue_id(self) -> str:

@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from . import EberspaecherConfigEntry
 from .const import (
+    CONF_SCHEDULE_DEVICE,
     CONF_LEARN_ENTITY,
     CONF_LEARN_TRACKER,
     CONF_NOTIFY_SERVICE,
@@ -25,6 +26,7 @@ TO_REDACT = {
     CONF_WORK_TEMPERATURE_ENTITY,
     CONF_LEARN_ENTITY,
     CONF_LEARN_TRACKER,
+    CONF_SCHEDULE_DEVICE,
     "imei",
     "token",
     "serialNumber",
