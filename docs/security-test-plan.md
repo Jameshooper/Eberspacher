@@ -608,3 +608,12 @@ Full suite: **325 passed**, 97% line coverage. Run against the code without the 
 | Diagnostics admin-only (SEC-AUTHZ-02) | Assumed | **Wrong assumption:** any signed-in user can download them (a Home Assistant behaviour). The test now asserts the file holds no secrets for such a user. |
 | F6: default non-admin users can control the heater | Confirmed platform behaviour | Unchanged (Home Assistant's model). Restricted users are blocked, and both are pinned by tests. |
 | F12: CI actions on mutable refs, no `permissions:` | Confirmed | Not changed. Recommendation only (needs SHA lookups and the maintainer's choice). |
+
+### Bypass review after v0.5.2 (same root causes)
+
+| Probe | Status | Fix | Regression tests |
+|---|---|---|---|
+| B1: the cloud lists devices in another order, so the schedule moves to the car without the Schedule switch | **Confirmed (harness)**, High | The schedule device is pinned once in the config entry (`schedule_device`) by `coordinator.async_pin_schedule_device` and kept | `test_sec_dev_02_reordered_device_list_does_not_move_the_schedule`, `..._pinned_device_survives_a_restart_with_another_order`, `..._existing_install_is_pinned_to_its_current_device` |
+| B4: the schedule's car leaves the account, so the next car takes over | **Confirmed (harness)**, High | `primary_imei` is None when the pinned device is missing, so the schedule fails closed (with a warning) | `test_sec_dev_02_schedule_stops_when_its_device_leaves_the_account` |
+| B2: errors other than HTTP status (e.g. `InvalidURL`, payload errors) quoted the full URL with the IMEI | **Confirmed (harness)**, Low (device ids are now validated, so the trigger is unlikely) | `api._detail` masks device ids in any error text | `test_sec_info_02_other_client_errors_do_not_carry_the_device_id` |
+| B3: diagnostics redaction matched exact key names only (`IMEI`, `SerialNumber`, `ICCID` leaked) | **Confirmed (harness)**, Low to Medium (depends on what the cloud sends; any signed-in user can download diagnostics) | Case- and underscore-insensitive redaction in `diagnostics.async_redact_data`; the new `schedule_device` is redacted too | `test_sec_info_01_identifiers_are_redacted_in_any_spelling` |
