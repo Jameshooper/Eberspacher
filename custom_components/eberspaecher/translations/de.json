@@ -146,7 +146,9 @@
       "runtime_too_long": "Die längste Laufzeit ist länger als die Zeit zwischen Mitternacht und der Fertig-um-Zeit",
       "bands_order": "Die Temperaturen müssen von warm nach kalt gehen: Nicht heizen über, dann Kalt, dann Sehr kalt",
       "vent_below_heating": "Die Lüftung muss bei einer höheren Temperatur beginnen als „Nicht heizen über“",
-      "learn_needs_signal": "Wähle sowohl den Abfahrtssensor als auch den Handy-Standort"
+      "learn_needs_signal": "Wähle sowohl den Abfahrtssensor als auch den Handy-Standort",
+      "work_needs_tracker": "Feierabend braucht den Standort deines Handys, damit es weiß, dass du nicht zu Hause bist. Wähle ihn zuerst unter Abfahrtszeiten lernen (das Lernen selbst kann aus bleiben).",
+      "learn_state_binary": "Ein Binärsensor ist on oder off: gib on (oder off) als Zustand ein"
     }
   },
   "selector": {

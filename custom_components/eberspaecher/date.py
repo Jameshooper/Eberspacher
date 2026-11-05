@@ -52,3 +52,5 @@ class EberspaecherPauseUntil(EberspaecherEntity, DateEntity, RestoreEntity):
     async def async_set_value(self, value: date) -> None:
         self.coordinator.paused_until = value
         self.async_write_ha_state()
+        self.coordinator.scheduler.async_pause_changed()
+        self.coordinator.work_scheduler.async_pause_changed()

@@ -40,7 +40,7 @@ Per device (found automatically) and per heater:
 |---|---|
 | `switch` Heating | On starts the heater for the **Run time**; off stops it |
 | `switch` Ventilation | Same, but runs ventilation (fan only). Only created if the heater lists ventilation |
-| `switch` Schedule | Turns the automatic start schedule on or off (once per device) |
+| `switch` Schedule | Turns the automatic start schedule on or off (once per device). Its attributes show today's ready-by and start times (the learned ones when there are any) and the last result, also for leaving work |
 | `number` Run time | Minutes the switch runs the heater (the heater's own min/max apply, 10–120 on the unit this was built on). Remembered across restarts |
 | `date` Pause until | The schedules do nothing up to and including this day, for example while the car is not used. Remembered across restarts (once per device) |
 | `sensor` Remaining run time | Minutes left in the current run |
@@ -143,13 +143,16 @@ Learn departure times** and choose:
 - the **phone location** (its device tracker or person).
 
 The first connection of a morning with your phone at home, and of an afternoon (from 13:00)
-with it away from home, is kept for each day. History Home Assistant already holds is read when you switch it on, so it does not
-start from nothing. For a weekday with at least 3 recent matching days, the car is made
+after at least three hours away from home, is kept for each day. A shorter outing, such as
+the way back from the shops on a day off, does not count as leaving work. Today's departure
+is only used from the next week on, so it never moves today's plan. History Home Assistant already holds is read when you switch it on, so it does not
+start from nothing. Where that history reaches, it replaces what was kept before. For a weekday with at least 3 recent matching days, the car is made
 ready by the early end of those departures (the early quarter) minus the margin you set
 (5 minutes by default), rounded down to 5 minutes and never more than two hours away from
 the fixed time. With fewer days, the fixed time from the Schedule settings is used. The
 evening before, at 20:00, you get a message when the learned time differs from the fixed
-one. Everything stays inside Home Assistant.
+one, unless that day is paused. Everything stays inside Home Assistant, and removing the
+integration deletes what it learned.
 
 With a phone location set, the morning schedule also does nothing on a day your phone is not at
 home when a start is due.
@@ -162,14 +165,17 @@ switch off pauses both), with its own days, ready-by time (16:30 by default) and
 turn learning on, its own learned time.
 
 - **Temperature:** by default the car's own. The integration asks the car for a fresh
-  reading, waits 30 seconds and uses that, which works in an underground car park. It wakes
-  the device at each wake-up of the day, up to three times. In the same screen you can
+  reading and waits up to a minute for the answer, which works in an underground car park.
+  An older reading is never used: if the car does not answer, the heater is not started. A
+  reading from the last 25 minutes is used again, so the device is woken at most three times
+  a day. In the same screen you can
   choose a temperature sensor or weather entity for work instead, which is then used
   without asking the car. Your outdoor sensor at home is never used here, and with no
   reading the heater is not started and you get a message.
-- **No work location needed.** The first connection in the afternoon (from 13:00) while
-  your phone is not at home counts as leaving work, wherever that is. Nothing starts while
-  your phone is at home.
+- **No work location needed, but the phone's location is.** Choose your phone under
+  **Learn departure times** (learning itself can stay off). Nothing starts while your phone is
+  at home or while its location is unknown, and without a phone location this schedule
+  stays off.
 - Notifications from this schedule start with "At work:".
 
 ### Prefer your own automation?
@@ -223,6 +229,7 @@ reminder) and the schedule's last result use the same language.
 
 ## Known limits
 
+- With a binary sensor as the departure sensor, the state is `on` (or `off`), not `CarPlay`.
 - Learning needs your phone's location and a departure sensor. It cannot know about days
   you leave at an unusual time for a reason it cannot see.
 

@@ -10,10 +10,11 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfTemperature, UnitOfTime
 from datetime import datetime
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import EntityCategory
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_change
 
 from . import EberspaecherConfigEntry
 from .const import LEG_HOME, LEG_WORK, WEEKDAYS
@@ -129,6 +130,14 @@ class EberspaecherLearnedSensor(EberspaecherEntity, SensorEntity):
         self.async_on_remove(
             self.coordinator.learner.async_add_listener(self.async_write_ha_state)
         )
+        # The state is today's time, so it changes at midnight even without polling.
+        self.async_on_remove(
+            async_track_time_change(self.hass, self._async_new_day, hour=0, minute=0, second=10)
+        )
+
+    @callback
+    def _async_new_day(self, _now: datetime) -> None:
+        self.async_write_ha_state()
 
     @property
     def native_value(self) -> str | None:

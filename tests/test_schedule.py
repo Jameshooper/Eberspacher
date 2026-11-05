@@ -378,3 +378,17 @@ async def test_pause_is_restored_after_a_restart(hass, scheduled, cloud):
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.runtime_data.paused_until.isoformat() == "2030-01-02"
+
+
+async def test_changing_the_pause_updates_the_last_result(hass, scheduled, cloud):
+    entry, _ = scheduled
+    sched = entry.runtime_data.scheduler
+    await hass.services.async_call("date", "set_value",
+                                   {"entity_id": PAUSE, "date": WED.date().isoformat()},
+                                   blocking=True)
+    await sched.async_run(time(6, 30), at(6, 30))
+    assert sched.last_result.startswith("Paused")
+    await hass.services.async_call("date", "set_value",
+                                   {"entity_id": PAUSE, "date": "2026-01-01"}, blocking=True)
+    assert sched.last_result is None
+    assert hass.states.get("switch.van_schedule").attributes["last_result"] is None

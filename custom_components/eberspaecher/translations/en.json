@@ -146,7 +146,9 @@
       "runtime_too_long": "The longest run time is longer than the time between midnight and the ready-by time",
       "bands_order": "The temperatures must go from warm to cold: No heating above, then Cold, then Very cold",
       "vent_below_heating": "Ventilation must start at a higher temperature than No heating above",
-      "learn_needs_signal": "Choose both the departure sensor and the phone location"
+      "learn_needs_signal": "Choose both the departure sensor and the phone location",
+      "work_needs_tracker": "Leaving work needs your phone's location, so it knows you are not at home. Choose it under Learn departure times first (learning itself can stay off).",
+      "learn_state_binary": "A binary sensor is on or off: enter on (or off) as the state"
     }
   },
   "selector": {

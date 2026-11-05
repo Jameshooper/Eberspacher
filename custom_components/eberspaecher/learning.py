@@ -1,9 +1,9 @@
 """Learn when you usually get in the car, so the car can be ready by then.
 
 A sensor tells when you got in (for an iPhone, the Audio Output sensor switches to
-CarPlay). The first such moment of a morning at home, and of an afternoon at work, is
-kept for each day. The time the car should be ready by is then taken from the early end
-of what that weekday looked like over the last weeks.
+CarPlay). The first such moment of a morning at home, and of an afternoon after hours
+away from home (at work), is kept for each day. The time the car should be ready by is
+then taken from the early end of what that weekday looked like over the last weeks.
 """
 
 from __future__ import annotations
@@ -46,8 +46,11 @@ MAX_SHIFT = 120  # minutes the learned time may differ from the fixed one
 WINDOWS = {LEG_HOME: (4, 12), LEG_WORK: (13, 23)}
 # A phone often leaves the home zone a few minutes before it connects to the car.
 RECENTLY_HOME = timedelta(minutes=30)
+# An afternoon connection is leaving work only after this long away from home. A shorter
+# outing (the way back from the shop on a day off) is not.
+AWAY_BEFORE_WORK = timedelta(hours=3)
 # Bump when the rules for reading history change, so existing history is read again.
-HISTORY_RULES = "2"
+HISTORY_RULES = "3"
 
 
 @dataclass(frozen=True)
@@ -76,17 +79,23 @@ class LearnConfig:
 
 
 def classify(
-    local: datetime, tracker_state: str | None, recently_home: bool = False
+    local: datetime,
+    tracker_state: str | None,
+    recently_home: bool = False,
+    away_for: timedelta | None = None,
 ) -> str | None:
     """Whether a connection at this time and place is leaving home, leaving work or neither.
 
     Leaving home is the morning with the phone at home or just gone from home. Leaving
-    work is the afternoon with the phone anywhere else, wherever work is.
+    work is the afternoon with the phone away from home for hours, wherever work is.
+    `away_for` is how long the phone has been away (None when that is not known).
     """
     if not tracker_state:
         return None
     home = recently_home or tracker_state.casefold() == "home"
     kind = LEG_HOME if home else LEG_WORK
+    if kind == LEG_WORK and away_for is not None and away_for < AWAY_BEFORE_WORK:
+        return None
     first, last = WINDOWS[kind]
     return kind if first <= local.hour < last else None
 
@@ -102,6 +111,20 @@ def _home_within(
     low = bisect_right(times, start)
     high = bisect_right(times, when)
     return any(state.casefold() == "home" for _, state in tracker[low:high])
+
+
+def _left_home(
+    tracker: list[tuple[datetime, str]], times: list[datetime], when: datetime
+) -> datetime | None:
+    """When the phone last left home before `when` (None if it was not home in the history)."""
+    index = bisect_right(times, when) - 1
+    if index >= 0 and tracker[index][1].casefold() == "home":
+        return when
+    while index >= 0:
+        if tracker[index][1].casefold() == "home":
+            return times[index + 1]
+        index -= 1
+    return None
 
 
 def samples_from_history(
@@ -126,7 +149,9 @@ def samples_from_history(
         index = bisect_right(times, when) - 1
         place = tracker[index][1] if index >= 0 else None
         local = when.astimezone(tz)
-        kind = classify(local, place, _home_within(tracker, times, when))
+        left = _left_home(tracker, times, when)
+        away_for = None if left is None else when - left
+        kind = classify(local, place, _home_within(tracker, times, when), away_for)
         if kind is None:
             continue
         day = local.date().isoformat()
@@ -161,6 +186,11 @@ class DepartureLearner:
                 for day, minutes in (stored.get("samples", {}).get(kind) or {}).items()
             }
         self._backfilled = stored.get("backfilled")
+        if last_home := stored.get("last_home"):
+            try:
+                self._last_home = datetime.fromisoformat(last_home)
+            except ValueError:
+                pass
 
     def _data(self) -> dict[str, Any]:
         cutoff = (dt_util.now().date() - timedelta(days=KEEP_DAYS)).isoformat()
@@ -168,7 +198,11 @@ class DepartureLearner:
             kind: {d: m for d, m in days.items() if d >= cutoff}
             for kind, days in self._samples.items()
         }
-        return {"samples": samples, "backfilled": self._backfilled}
+        return {
+            "samples": samples,
+            "backfilled": self._backfilled,
+            "last_home": self._last_home.isoformat() if self._last_home else None,
+        }
 
     def _save(self) -> None:
         self._store.async_delay_save(self._data, SAVE_DELAY)
@@ -195,6 +229,9 @@ class DepartureLearner:
             )
             if (self.tracker_state() or "").casefold() == "home":
                 self._last_home = dt_util.utcnow()
+            elif self._last_home is None and (state := self.hass.states.get(cfg.tracker)):
+                # Not seen at home yet: away at least since the tracker last changed.
+                self._last_home = state.last_changed
             self.hass.async_create_task(self.async_backfill())
         self._notify_listeners()
 
@@ -216,6 +253,14 @@ class DepartureLearner:
             return None
         return state.state
 
+    def away_for(self, now: datetime | None = None) -> timedelta | None:
+        """How long the phone has been away from home (None when not known)."""
+        if (self.tracker_state() or "").casefold() == "home":
+            return timedelta(0)
+        if self._last_home is None:
+            return None
+        return (now or dt_util.utcnow()) - self._last_home
+
     def recently_home(self, now: datetime | None = None) -> bool:
         """Whether the phone is at home or left home within the last half hour."""
         if (self.tracker_state() or "").casefold() == "home":
@@ -232,6 +277,7 @@ class DepartureLearner:
             # Remember the last moment at home, also when the phone has just left.
             if old is not None and old.state.casefold() == "home":
                 self._last_home = dt_util.utcnow()
+                self._save()
             return
         if new is None or new.state.casefold() != self.config.state.casefold():
             return
@@ -242,7 +288,7 @@ class DepartureLearner:
     @callback
     def record(self, local: datetime, tracker_state: str | None) -> None:
         """Keep this moment when it is the first of its kind that day."""
-        kind = classify(local, tracker_state, self.recently_home())
+        kind = classify(local, tracker_state, self.recently_home(), self.away_for())
         if kind is None:
             return
         day = local.date().isoformat()
@@ -297,9 +343,19 @@ class DepartureLearner:
             cfg.state,
             dt_util.get_default_time_zone(),
         )
-        for kind, days in found.items():
-            for day, minutes in days.items():
-                self._samples[kind].setdefault(day, minutes)
+        signal, tracker = history.get(cfg.entity), history.get(cfg.tracker)
+        if signal and tracker:
+            # Where history covers a day, it replaces what was kept, which may have been
+            # found under older rules. Days before what history holds are kept as they are.
+            covered = max(start, signal[0][0], tracker[0][0])
+            after = covered.astimezone(dt_util.get_default_time_zone()).date().isoformat()
+            for kind, days in found.items():
+                kept = {d: m for d, m in self._samples[kind].items() if d <= after}
+                self._samples[kind] = {**kept, **{d: m for d, m in days.items() if d > after}}
+        else:
+            for kind, days in found.items():
+                for day, minutes in days.items():
+                    self._samples[kind].setdefault(day, minutes)
         self._backfilled = key
         self._save()
         self._notify_listeners()
@@ -307,13 +363,17 @@ class DepartureLearner:
     # --- what was learned --------------------------------------------------
 
     def samples(self, kind: str, weekday: int, today: date | None = None) -> list[int]:
-        """Recent departure minutes for one weekday (Monday is 0), earliest first."""
+        """Recent departure minutes for one weekday (Monday is 0), earliest first.
+
+        Only days before `today` count, so leaving today does not move today's plan.
+        """
         today = today or dt_util.now().date()
         cutoff = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
         return sorted(
             minutes
             for day, minutes in self._samples[kind].items()
-            if day >= cutoff and date.fromisoformat(day).weekday() == weekday
+            if cutoff <= day < today.isoformat()
+            and date.fromisoformat(day).weekday() == weekday
         )
 
     def learned_minutes(self, kind: str, weekday: int, today: date | None = None) -> int | None:

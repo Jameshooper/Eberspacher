@@ -9,13 +9,22 @@ from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from . import EberspaecherConfigEntry
-from .const import CONF_NOTIFY_SERVICE, CONF_TEMPERATURE_ENTITY
+from .const import (
+    CONF_LEARN_ENTITY,
+    CONF_LEARN_TRACKER,
+    CONF_NOTIFY_SERVICE,
+    CONF_TEMPERATURE_ENTITY,
+    CONF_WORK_TEMPERATURE_ENTITY,
+)
 
 TO_REDACT = {
     CONF_EMAIL,
     CONF_PASSWORD,
     CONF_NOTIFY_SERVICE,
     CONF_TEMPERATURE_ENTITY,
+    CONF_WORK_TEMPERATURE_ENTITY,
+    CONF_LEARN_ENTITY,
+    CONF_LEARN_TRACKER,
     "imei",
     "token",
     "serialNumber",
@@ -44,5 +53,9 @@ async def async_get_config_entry_diagnostics(
         ),
         "last_update_success": coordinator.last_update_success,
         "schedule_last_result": coordinator.scheduler.last_result,
+        "work_schedule_last_result": coordinator.work_scheduler.last_result,
+        "paused_until": (
+            coordinator.paused_until.isoformat() if coordinator.paused_until else None
+        ),
         "devices": devices,
     }

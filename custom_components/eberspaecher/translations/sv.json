@@ -146,7 +146,9 @@
       "runtime_too_long": "Den längsta gångtiden är längre än tiden mellan midnatt och klar-till-tiden",
       "bands_order": "Temperaturerna måste gå från varmt till kallt: Ingen värme över, sedan Kallt, sedan Mycket kallt",
       "vent_below_heating": "Ventilationen måste starta vid en högre temperatur än Ingen värme över",
-      "learn_needs_signal": "Välj både avfärdssensorn och telefonens plats"
+      "learn_needs_signal": "Välj både avfärdssensorn och telefonens plats",
+      "work_needs_tracker": "Åka från jobbet behöver telefonens plats för att veta att du inte är hemma. Välj den först under Lär in avfärdstider (själva inlärningen kan vara av).",
+      "learn_state_binary": "En binär sensor är on eller off: ange on (eller off) som tillstånd"
     }
   },
   "selector": {

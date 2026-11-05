@@ -146,7 +146,9 @@
       "runtime_too_long": "Pisin käyntiaika on pidempi kuin aika keskiyön ja valmis-kellonajan välillä",
       "bands_order": "Lämpötilojen on mentävä lämpimästä kylmään: Ei lämmitystä yli, sitten Kylmä, sitten Erittäin kylmä",
       "vent_below_heating": "Tuuletuksen on alettava korkeammasta lämpötilasta kuin Ei lämmitystä yli",
-      "learn_needs_signal": "Valitse sekä lähtöanturi että puhelimen sijainti"
+      "learn_needs_signal": "Valitse sekä lähtöanturi että puhelimen sijainti",
+      "work_needs_tracker": "Töistä lähtö tarvitsee puhelimesi sijainnin, jotta se tietää, ettet ole kotona. Valitse se ensin kohdassa Opi lähtöajat (itse oppiminen voi olla pois päältä).",
+      "learn_state_binary": "Binäärianturi on joko on tai off: anna tilaksi on (tai off)"
     }
   },
   "selector": {

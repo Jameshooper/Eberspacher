@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import (
     async_get_current_platform,
 )
 from homeassistant.helpers.event import async_call_later
+from homeassistant.util import dt as dt_util
 
 from . import EberspaecherConfigEntry
 from .api import EberspaecherError
@@ -235,9 +236,8 @@ class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        self.async_on_remove(
-            self.coordinator.scheduler.async_add_listener(self.async_write_ha_state)
-        )
+        for scheduler in (self.coordinator.scheduler, self.coordinator.work_scheduler):
+            self.async_on_remove(scheduler.async_add_listener(self.async_write_ha_state))
 
     @property
     def is_on(self) -> bool:
@@ -245,13 +245,25 @@ class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        # Today's times, which are the learned ones when there are any.
+        today = dt_util.now().date()
         scheduler = self.coordinator.scheduler
-        cfg = scheduler.config
+        cfg = scheduler.config_for(today)
+        work = self.coordinator.work_scheduler
+        work_cfg = work.config_for(today)
         return {
             "ready_by": cfg.ready_by.strftime("%H:%M"),
             "weekdays": list(cfg.weekdays),
             "start_times": [t.strftime("%H:%M") for t in start_times(cfg)],
             "last_result": scheduler.last_result,
+            "work_ready_by": work_cfg.ready_by.strftime("%H:%M") if work_cfg.enabled else None,
+            "work_weekdays": list(work_cfg.weekdays) if work_cfg.enabled else None,
+            "work_start_times": (
+                [t.strftime("%H:%M") for t in start_times(work_cfg)]
+                if work_cfg.enabled
+                else None
+            ),
+            "work_last_result": work.last_result,
         }
 
     async def _async_set(self, enabled: bool) -> None:

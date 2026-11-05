@@ -388,6 +388,10 @@ class EberspaecherOptionsFlow(OptionsFlow):
         if user_input is not None:
             if not user_input.get(CONF_WORK_WEEKDAYS):
                 errors["base"] = "no_weekdays"
+            elif user_input.get(CONF_WORK_ENABLED) and not self.config_entry.options.get(
+                CONF_LEARN_TRACKER
+            ):
+                errors["base"] = "work_needs_tracker"
             elif not longest_runtime_fits(
                 ScheduleConfig.from_options({**self.config_entry.options, **user_input}, LEG_WORK)
             ):
@@ -433,6 +437,14 @@ class EberspaecherOptionsFlow(OptionsFlow):
                 user_input.get(CONF_LEARN_ENTITY) and user_input.get(CONF_LEARN_TRACKER)
             ):
                 errors["base"] = "learn_needs_signal"
+            elif str(user_input.get(CONF_LEARN_ENTITY) or "").startswith(
+                "binary_sensor."
+            ) and str(user_input.get(CONF_LEARN_STATE, "")).casefold() not in ("on", "off"):
+                errors["base"] = "learn_state_binary"
+            elif not user_input.get(CONF_LEARN_TRACKER) and self.config_entry.options.get(
+                CONF_WORK_ENABLED
+            ):
+                errors["base"] = "work_needs_tracker"
             else:
                 return self._save(
                     **{

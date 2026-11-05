@@ -27,6 +27,7 @@ from .api import EberspaecherError
 from .const import (
     CONF_COLD_BELOW,
     CONF_COLD_RUNTIME,
+    CONF_LEARN_TRACKER,
     CONF_MILD_RUNTIME,
     CONF_NO_HEAT_ABOVE,
     CONF_NOTIFY_SERVICE,
@@ -63,6 +64,8 @@ _LOGGER = logging.getLogger(__name__)
 
 SERVICE_START = "start_heating"
 CAR_READING_WAIT = 30  # seconds the car gets to answer a temperature request
+CAR_READING_TRIES = 2  # checks for the answer before giving up
+CAR_READING_REUSE = timedelta(minutes=25)  # a reading this recent is used again, not asked anew
 ANNOUNCE_AT = time(20, 0)  # the evening before, when a learned time is announced
 
 
@@ -151,8 +154,11 @@ for _name, _key in (
 def _work_view(options: dict[str, Any]) -> dict[str, Any]:
     """The options as the leaving-work schedule sees them: its own days, time and sensor."""
     view = dict(options)
-    view[CONF_SCHEDULE_ENABLED] = bool(options.get(CONF_SCHEDULE_ENABLED)) and bool(
-        options.get(CONF_WORK_ENABLED)
+    # Without the phone's location it cannot know you are not at home, so it stays off.
+    view[CONF_SCHEDULE_ENABLED] = (
+        bool(options.get(CONF_SCHEDULE_ENABLED))
+        and bool(options.get(CONF_WORK_ENABLED))
+        and bool(options.get(CONF_LEARN_TRACKER))
     )
     # The outdoor sensor is not where the car is; only a sensor chosen for work counts.
     for home, work in (
@@ -242,6 +248,10 @@ class ScheduleManager:
         self.config = ScheduleConfig()
         self.last_result: str | None = None
         self._last_start_date = None
+        self._paused_shown = False  # whether last_result says the schedule is paused
+        self._car_cache: tuple[datetime, float] | None = None
+        # Bumped when the wake-ups are stopped, so a wake-up still waiting for the car gives up.
+        self._generation = 0
         self._unsubs: list[CALLBACK_TYPE] = []
         self._timers: list[CALLBACK_TYPE] = []
         self._listeners: list[Callable[[], None]] = []
@@ -309,6 +319,7 @@ class ScheduleManager:
 
     @callback
     def async_stop(self) -> None:
+        self._generation += 1
         for unsub in (*self._unsubs, *self._timers):
             unsub()
         self._unsubs = []
@@ -338,6 +349,7 @@ class ScheduleManager:
         if (
             cfg.ready_by == self.config.ready_by
             or WEEKDAYS[tomorrow.weekday()] not in cfg.weekdays
+            or self.paused_on(tomorrow)
         ):
             return
         await self._notify(
@@ -366,16 +378,30 @@ class ScheduleManager:
             value = round((value - 32) * 5 / 9, 1)
         return value
 
-    def _heater_reading(self) -> float | None:
+    def _raw_reading(self) -> Any:
+        """The heater's last reading as the cloud gives it (with its timestamp, if any)."""
         for device in (self.coordinator.data or {}).values():
             for heater in device.heaters.values():
-                value = parse_temperature(heater.get("lastMeasuredTemperature"))
-                if value is not None:
-                    return value
+                raw = heater.get("lastMeasuredTemperature")
+                if parse_temperature(raw) is not None:
+                    return raw
         return None
 
+    def _heater_reading(self) -> float | None:
+        return parse_temperature(self._raw_reading())
+
     async def _car_reading(self) -> float | None:
-        """Ask the car for a fresh temperature, give it a moment, and read it."""
+        """Ask the car for a fresh temperature and wait for its answer.
+
+        Only an answer to this request counts: an older reading may be from somewhere else
+        or from hours ago. A reading taken at an earlier wake-up shortly before is used again,
+        so the device is not woken at every wake-up.
+        """
+        now = dt_util.utcnow()
+        if self._car_cache and now - self._car_cache[0] < CAR_READING_REUSE:
+            return self._car_cache[1]
+        generation = self._generation
+        before = self._raw_reading()
         asked = False
         for imei in list((self.coordinator.data or {}).keys()):
             try:
@@ -383,10 +409,24 @@ class ScheduleManager:
                 asked = True
             except EberspaecherError as err:
                 _LOGGER.debug("Temperature request failed: %s", err)
-        if asked:
+        if not asked:
+            return None
+        for _ in range(CAR_READING_TRIES):
             await asyncio.sleep(CAR_READING_WAIT)
+            if generation != self._generation:
+                return None  # stopped or reconfigured meanwhile
             await self.coordinator.async_refresh()
-        return self._heater_reading()
+            raw = self._raw_reading()
+            value = parse_temperature(raw)
+            if value is None:
+                continue
+            # With a timestamp, a new answer is one that differs from what was there before.
+            # Without one there is no way to tell, so the answer to a successful request is used.
+            has_time = isinstance(raw, dict) and raw.get("timestamp") is not None
+            if not has_time or raw != before:
+                self._car_cache = (dt_util.utcnow(), value)
+                return value
+        return None
 
     async def _temperature(self) -> tuple[float | None, str | None]:
         """The outside temperature and the sensor it came from (None: the heater's reading).
@@ -405,14 +445,36 @@ class ScheduleManager:
         value = self._heater_reading()
         return (value, None) if value is not None else (None, None)
 
-    def _away(self) -> bool:
-        """Whether the phone says you are not where this schedule expects you to be."""
-        learner = self.coordinator.learner
-        place = learner.tracker_state()
+    def paused_on(self, day: date) -> bool:
+        paused = self.coordinator.paused_until
+        return paused is not None and day <= paused
+
+    @callback
+    def async_pause_changed(self) -> None:
+        """The pause date changed: do not keep saying it is paused when it no longer is."""
+        if self._paused_shown:
+            if self.paused_on(dt_util.now().date()):
+                self._set_paused_result()
+            else:
+                self.last_result = None
+                self._paused_shown = False
+        self._notify_listeners()
+
+    def _set_paused_result(self) -> None:
+        paused = self.coordinator.paused_until
+        self.last_result = text(self.hass, "result_paused", date=paused.isoformat())
+        self._paused_shown = True
+
+    def _skip_reason(self) -> str | None:
+        """A message key when the phone says you are not where this schedule expects you."""
+        place = self.coordinator.learner.tracker_state()
         if place is None:
-            return False
+            # Leaving work only runs when it knows you are away; leaving home runs anyway.
+            return "result_skipped_unknown" if self.leg == LEG_WORK else None
         at_home = place.casefold() == "home"
-        return not at_home if self.leg == LEG_HOME else at_home
+        if self.leg == LEG_HOME:
+            return None if at_home else "result_skipped_home"
+        return "result_skipped_work" if at_home else None
 
     async def async_run(self, at: time, now: datetime) -> None:
         """One wake-up at start time `at`."""
@@ -422,17 +484,20 @@ class ScheduleManager:
             return
         if self._last_start_date == local.date():
             return
-        paused = self.coordinator.paused_until
-        if paused is not None and local.date() <= paused:
-            self.last_result = text(self.hass, "result_paused", date=paused.isoformat())
+        if self.paused_on(local.date()):
+            self._set_paused_result()
             self._notify_listeners()
             return
-        if self._away():
-            self.last_result = text(self.hass, f"result_skipped_{self.leg}")
+        self._paused_shown = False
+        if reason := self._skip_reason():
+            self.last_result = text(self.hass, reason)
             self._notify_listeners()
             return
 
+        generation = self._generation
         temperature, source = await self._temperature()
+        if generation != self._generation:
+            return  # stopped or reconfigured while reading the temperature
         action = choose_action(cfg, temperature)
         if action is None:
             if at == start_times(cfg)[-1]:
