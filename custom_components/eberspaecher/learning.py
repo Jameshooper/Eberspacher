@@ -3,7 +3,7 @@
 A sensor tells when you got in (for an iPhone, the Audio Output sensor switches to
 CarPlay). The first such moment of a morning at home, and of an afternoon after hours
 away from home (at work), is kept for each day. The time the car should be ready by is
-then taken from the early end of what that weekday looked like over the last weeks.
+then taken from the middle (median) of what that weekday looked like over the last weeks.
 """
 
 from __future__ import annotations
@@ -397,8 +397,11 @@ class DepartureLearner:
         values = self.samples(kind, weekday, today)
         if len(values) < MIN_SAMPLES:
             return None
-        early = values[(len(values) - 1) // 4]  # the early quarter: warm on the early days too
-        return _round_down(max(0, early - self.config.margin))
+        # The middle day (the earlier of the two middle ones for an even count). One unusually
+        # early day does not pull the time forward, which would only heat a car that has
+        # cooled again by the time you usually leave.
+        middle = values[(len(values) - 1) // 2]
+        return _round_down(max(0, middle - self.config.margin))
 
     def learned_time(self, kind: str, weekday: int, today: date | None = None) -> time | None:
         minutes = self.learned_minutes(kind, weekday, today)

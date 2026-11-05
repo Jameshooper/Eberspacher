@@ -153,7 +153,8 @@ after at least three hours away from home, is kept for each day. A shorter outin
 the way back from the shops on a day off, does not count as leaving work. Today's departure
 is only used from the next week on, so it never moves today's plan. History Home Assistant already holds is read when you switch it on, so it does not
 start from nothing. Where that history reaches, it replaces what was kept before. For a weekday with at least 3 recent matching days, the car is made
-ready by the early end of those departures (the early quarter) minus the margin you set
+ready by the middle of those departures (the median, so one unusually early or late day
+does not move it) minus the margin you set
 (5 minutes by default), rounded down to 5 minutes and never more than two hours away from
 the fixed time. With fewer days, the fixed time from the Schedule settings is used. The
 evening before, at 20:00, you get a message when the learned time differs from the fixed

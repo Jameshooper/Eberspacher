@@ -177,12 +177,20 @@ async def test_too_few_days_means_no_learned_time(hass, learning):
     assert learner.learned_time("home", 2, WED.date()) is None
 
 
-async def test_the_early_end_minus_the_margin_is_used(hass, learning):
+async def test_the_median_minus_the_margin_is_used(hass, learning):
     entry, _ = learning
     teach(entry, "home", [8 * 60 + 30, 8 * 60, 8 * 60 + 15, 8 * 60 + 10, 8 * 60 + 40, 8 * 60 + 5, 8 * 60 + 20, 8 * 60 + 25])
     learner = entry.runtime_data.learner
-    # sorted: 480 485 490 495 500 510 520 540 -> early quarter is 485; minus 5 is 480
-    assert learner.learned_time("home", 2, WED.date()) == time(8, 0)
+    # sorted: 480 485 490 495 500 510 520 540 -> the earlier middle is 495; minus 5 is 490
+    assert learner.learned_time("home", 2, WED.date()) == time(8, 10)
+
+
+async def test_one_early_day_does_not_pull_the_time_forward(hass, at_work):
+    """The real Thursdays: one early finish at 14:02, then 16:20 and 17:59."""
+    entry, _ = at_work
+    teach(entry, "work", [14 * 60 + 2, 16 * 60 + 20, 17 * 60 + 59])
+    assert entry.runtime_data.learner.learned_time("work", 2, WED.date()) == time(16, 15)
+    assert entry.runtime_data.work_scheduler.config_for(WED.date()).ready_by == time(16, 15)
 
 
 async def test_start_times_follow_the_learned_time(hass, learning):
