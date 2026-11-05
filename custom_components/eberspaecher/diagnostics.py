@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
@@ -39,6 +38,32 @@ TO_REDACT = {
     "phoneNumber",
     "ownerEmail",
 }
+
+
+_REDACT_KEYS = {key.casefold().replace("_", "") for key in TO_REDACT}
+REDACTED = "**REDACTED**"
+
+
+def async_redact_data(data: Any, to_redact: set[str] = TO_REDACT) -> Any:
+    """Like Home Assistant's redaction, but a key matches in any spelling (IMEI, Imei,
+    serial_number), since the cloud's field names are not documented."""
+    keys = (
+        _REDACT_KEYS
+        if to_redact is TO_REDACT
+        else {k.casefold().replace("_", "") for k in to_redact}
+    )
+    if isinstance(data, dict):
+        return {
+            k: (
+                REDACTED
+                if str(k).casefold().replace("_", "") in keys and v is not None
+                else async_redact_data(v, to_redact)
+            )
+            for k, v in data.items()
+        }
+    if isinstance(data, list):
+        return [async_redact_data(item, to_redact) for item in data]
+    return data
 
 
 async def async_get_config_entry_diagnostics(

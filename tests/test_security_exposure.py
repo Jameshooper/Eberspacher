@@ -380,3 +380,18 @@ async def test_sec_info_02_other_client_errors_do_not_carry_the_device_id(hass, 
     assert IMEI not in str(info.value)
     assert "…0001" in str(info.value)                   # still recognisable
 
+
+async def test_sec_info_01_identifiers_are_redacted_in_any_spelling(hass, aioclient_mock, entry):
+    aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": TOKEN})
+    aioclient_mock.get(f"{BASE_URL}/calls", json=[{"imei": IMEI, "name": "Van"}])
+    odd = {"IMEI": "IMEI-UPPER", "SerialNumber": "SER-X", "ICCID": "ICC-X",
+           "phone_number": "+3584", "Owner_Email": "o@x.y"}
+    aioclient_mock.get(f"{BASE_URL}/calls/{IMEI}/heaters", json=[heater(**odd)])
+    await setup(hass, entry)
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    text = json.dumps(diag)
+    for value in odd.values():
+        assert value not in text, value
+    heater_data = diag["devices"]["device_1"]["heaters"][1]
+    assert heater_data["state"] == "OFF"                # useful, non-identifying data is kept
+    assert diag["entry"]["schedule_device"] == "**REDACTED**"
