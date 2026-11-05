@@ -362,3 +362,21 @@ async def test_sec_info_04_removal_deletes_both_stores_and_old_samples_are_prune
     await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
     assert not keys & set(hass_storage)
+
+
+# --- SEC-INFO-02 / SEC-INFO-01 bypass review --------------------------------------------
+
+@pytest.mark.parametrize("exc", [
+    __import__("aiohttp").InvalidURL(f"{BASE_URL}/calls/{IMEI}/heaters/1"),
+    __import__("aiohttp").ClientPayloadError(f"payload for {BASE_URL}/calls/{IMEI}/heaters/1"),
+    __import__("aiohttp").ServerDisconnectedError(),
+])
+async def test_sec_info_02_other_client_errors_do_not_carry_the_device_id(hass, aioclient_mock, exc):
+    aioclient_mock.post(f"{BASE_URL}/authenticate", json={"token": TOKEN})
+    aioclient_mock.put(f"{BASE_URL}/calls/{IMEI}/heaters/1", exc=exc)
+    api = EberspaecherApi(async_get_clientsession(hass), EMAIL, PASSWORD)
+    with pytest.raises(EberspaecherConnectionError) as info:
+        await api.async_set_heater(IMEI, 1, "HEATING", 30)
+    assert IMEI not in str(info.value)
+    assert "…0001" in str(info.value)                   # still recognisable
+

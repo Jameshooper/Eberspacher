@@ -60,7 +60,8 @@ def _detail(err: BaseException) -> str:
         return f"HTTP {err.status}"
     if isinstance(err, TimeoutError):
         return "timed out"
-    return str(err) or type(err).__name__
+    # Other errors may quote the URL: keep only the end of any device id in it.
+    return _masked(str(err)) or type(err).__name__
 
 
 def _check_redirect(resp: aiohttp.ClientResponse) -> None:
