@@ -140,3 +140,5 @@ def test_values_from_home_assistant_never_go_into_html():
 def test_the_page_files_exist():
     assert (WWW / "car.webp").is_file()
     assert "/eberspaecher_static/car.webp" in SCRIPT
+    assert (WWW / "apple-touch-icon.png").is_file()
+    assert "/eberspaecher_static/apple-touch-icon.png" in SCRIPT

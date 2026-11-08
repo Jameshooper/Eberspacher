@@ -210,8 +210,37 @@ class EberspaecherHud extends HTMLElement {
     this._lastNight = null;
   }
 
-  connectedCallback() { this._tick = setInterval(() => this._render(), 30000); }  // keeps "x min ago" current
-  disconnectedCallback() { clearInterval(this._tick); }
+  connectedCallback() {
+    this._tick = setInterval(() => this._render(), 30000);  // keeps "x min ago" current
+    this._brand();
+  }
+  disconnectedCallback() { clearInterval(this._tick); this._unbrand(); }
+
+  // Safari reads the home-screen icon and name when "Add to Home Screen" is used, so while
+  // this page is open they are the Optima ones instead of Home Assistant's.
+  _brand() {
+    this._saved = [];
+    const set = (selector, make, attr, value) => {
+      let el = document.head.querySelector(selector);
+      const created = !el;
+      if (created) { el = make(); document.head.appendChild(el); }
+      this._saved.push({ el, created, attr, old: el.getAttribute(attr) });
+      el.setAttribute(attr, value);
+    };
+    const tag = (name, attrs) => () => { const e = document.createElement(name); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+    set('link[rel="apple-touch-icon"]', tag("link", { rel: "apple-touch-icon" }), "href", "/eberspaecher_static/apple-touch-icon.png");
+    set('meta[name="apple-mobile-web-app-title"]', tag("meta", { name: "apple-mobile-web-app-title" }), "content", "Optima");
+    this._title = document.title;
+    document.title = "Optima";
+  }
+
+  _unbrand() {
+    (this._saved || []).forEach(({ el, created, attr, old }) => {
+      if (created) el.remove(); else if (old === null) el.removeAttribute(attr); else el.setAttribute(attr, old);
+    });
+    this._saved = [];
+    if (this._title !== undefined) document.title = this._title;
+  }
 
   set panel(p) { this._cfg = (p && p.config) || {}; this._render(); }
   set hass(h) { this._hass = h; this._render(); }
