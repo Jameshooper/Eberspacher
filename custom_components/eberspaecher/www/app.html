@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Optima</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Optima">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1430">
+<link rel="apple-touch-icon" href="/eberspaecher_static/apple-touch-icon.png">
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: #0a1430; color: #e8eefc; font: 16px -apple-system, system-ui, sans-serif; text-align: center; }
+  main { max-width: 22rem; padding: 2rem; }
+  a { color: #7fb2ff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Optima</h1>
+  <p id="msg">To put Optima on your home screen: tap <b>Share</b>, then <b>Add to Home Screen</b>.
+     Opening it from there goes straight to the Optima page.</p>
+  <p><a href="/eberspaecher">Open Optima now</a></p>
+</main>
+<script>
+  // Opened from the home screen: go straight to the Optima page. In a normal browser tab this
+  // page stays put, so it can be added to the home screen.
+  if (window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches) {
+    location.replace("/eberspaecher");
+  }
+</script>
+</body>
+</html>

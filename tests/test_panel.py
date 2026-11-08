@@ -153,3 +153,12 @@ def test_the_home_screen_shortcut_starts_at_the_panel():
     assert "/eberspaecher_static/manifest.json" in SCRIPT
     icon = manifest["icons"][0]["src"]
     assert (WWW / icon.rsplit("/", 1)[1]).is_file()
+
+
+def test_launcher_page_opens_the_panel_from_the_home_screen():
+    """A home-screen shortcut made from app.html forwards to the panel and carries no data."""
+    page = (WWW / "app.html").read_text()
+    assert f'location.replace("/{panel.PANEL_PATH}")' in page
+    assert "apple-mobile-web-app-capable" in page and "apple-touch-icon" in page
+    for banned in ("fetch(", "XMLHttpRequest", "eval(", "localStorage", "WebSocket"):
+        assert banned not in page
