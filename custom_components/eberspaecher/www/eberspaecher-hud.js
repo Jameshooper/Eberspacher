@@ -238,7 +238,7 @@ class EberspaecherHud extends HTMLElement {
   }
   disconnectedCallback() { clearInterval(this._tick); this._unbrand(); }
 
-  // Safari reads the home-screen icon and name when "Add to Home Screen" is used, so while
+  // Safari reads the home-screen icon, name and start page when "Add to Home Screen" is used, so while
   // this page is open they are the Optima ones instead of Home Assistant's.
   _brand() {
     this._saved = [];
@@ -251,6 +251,9 @@ class EberspaecherHud extends HTMLElement {
     };
     const tag = (name, attrs) => () => { const e = document.createElement(name); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
     set('link[rel="apple-touch-icon"]', tag("link", { rel: "apple-touch-icon" }), "href", "/eberspaecher_static/apple-touch-icon.png");
+    // Home Assistant's own manifest says to start at "/", which is the default dashboard;
+    // newer iOS opens the shortcut there. This one starts at this page.
+    set('link[rel="manifest"]', tag("link", { rel: "manifest" }), "href", "/eberspaecher_static/manifest.json");
     set('meta[name="apple-mobile-web-app-title"]', tag("meta", { name: "apple-mobile-web-app-title" }), "content", "Optima");
     this._title = document.title;
     document.title = "Optima";

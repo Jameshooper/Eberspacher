@@ -1,0 +1,13 @@
+{
+  "name": "Optima",
+  "short_name": "Optima",
+  "id": "/eberspaecher",
+  "start_url": "/eberspaecher",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a1430",
+  "theme_color": "#0a1430",
+  "icons": [
+    { "src": "/eberspaecher_static/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -142,3 +142,14 @@ def test_the_page_files_exist():
     assert "/eberspaecher_static/car.webp" in SCRIPT
     assert (WWW / "apple-touch-icon.png").is_file()
     assert "/eberspaecher_static/apple-touch-icon.png" in SCRIPT
+
+
+def test_the_home_screen_shortcut_starts_at_the_panel():
+    """The manifest the page swaps in starts at the panel, not at Home Assistant's default view."""
+    import json
+    manifest = json.loads((WWW / "manifest.json").read_text())
+    assert manifest["start_url"] == "/eberspaecher" == f"/{panel.PANEL_PATH}"
+    assert manifest["display"] == "standalone" and manifest["name"] == "Optima"
+    assert "/eberspaecher_static/manifest.json" in SCRIPT
+    icon = manifest["icons"][0]["src"]
+    assert (WWW / icon.rsplit("/", 1)[1]).is_file()
