@@ -20,10 +20,12 @@ async def async_setup_entry(
 ) -> None:
     """Create one 'request temperature' button per device."""
     coordinator = entry.runtime_data
-    async_add_entities(
-        EberspaecherRequestTemperature(coordinator, imei)
-        for imei in coordinator.data
-    )
+    entities: list[ButtonEntity] = [
+        EberspaecherRequestTemperature(coordinator, imei) for imei in coordinator.data
+    ]
+    if (first := coordinator.primary_imei) is not None:
+        entities.append(EberspaecherCancelReadyOnce(coordinator, first))
+    async_add_entities(entities)
 
 
 class EberspaecherRequestTemperature(EberspaecherEntity, ButtonEntity):
@@ -50,3 +52,16 @@ class EberspaecherRequestTemperature(EberspaecherEntity, ButtonEntity):
             ) from err
         self.coordinator.temperature_reads = SETTLE_MAX_READS
         self.coordinator.async_schedule_refresh(REFRESH_DELAY_TEMPERATURE)
+
+
+class EberspaecherCancelReadyOnce(EberspaecherEntity, ButtonEntity):
+    """Cancel the one-off "ready by" time."""
+
+    _attr_translation_key = "cancel_ready_once"
+    _attr_icon = "mdi:clock-remove-outline"
+
+    def __init__(self, coordinator, imei: str) -> None:
+        super().__init__(coordinator, imei, None, "cancel_ready_once")
+
+    async def async_press(self) -> None:
+        self.coordinator.ready_once.async_set(None)

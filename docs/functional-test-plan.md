@@ -59,6 +59,25 @@ side is in [security-test-plan.md](security-test-plan.md).
 | FT-CAR-10 | Turned off in the options | Notice cleared; no more checks | `test_ft_car_10_*` |
 | FT-CAR-11 | Unloaded while waiting for the answer | Gives up quietly | `test_ft_car_11_*` |
 | FT-CAR-12 | Diagnostics | Show the last check | `test_ft_car_12_*` |
+| FT-ONCE-01 | One-off ready by 10:00 at −12 / −5 / 4 °C | Starts at 08:20 / 08:50 / 09:20 for 100 / 70 / 40 min | `test_ft_once_01_*` |
+| FT-ONCE-02 | After it has started | Clears itself; normal schedule untouched; no second start | `test_ft_once_02_*` |
+| FT-ONCE-03 | Set after the start time has passed | Starts at once | `test_ft_once_03_*` |
+| FT-ONCE-04 | Warm day | "Not needed" at the last wake-up, then clears | `test_ft_once_04_*` |
+| FT-ONCE-05 | Sunday, paused, phone away | Still starts | `test_ft_once_05_*` |
+| FT-ONCE-06 | Cancel button | Nothing starts | `test_ft_once_06_*` |
+| FT-ONCE-07 | Time in the past | Not planned; result says so | `test_ft_once_07_*` |
+| FT-ONCE-08 | New time replaces the old | Only the new plan runs | `test_ft_once_08_*` |
+| FT-ONCE-09 | Restart before the time | Kept, still starts | `test_ft_once_09_*` |
+| FT-ONCE-10 | Restart after the time passed | Dropped, no start | `test_ft_once_10_*` |
+| FT-ONCE-11 | Heater already running | Left alone; clears | `test_ft_once_11_*` |
+| FT-ONCE-12 | Start fails | Message, tries again at the next wake-up | `test_ft_once_12_*` |
+| FT-ONCE-13 | No temperature reading | "Not started" message, clears | `test_ft_once_13_*` |
+| FT-ONCE-14 | Changed heating bands | New bands used | `test_ft_once_14_*` |
+| FT-ONCE-15 | Diagnostics | Show the one-off | `test_ft_once_15_*` |
+| FT-ONCE-16 | Phone away, sensor warm, car freezing | Goes by the car | `test_ft_once_16_*` |
+| FT-ONCE-17 | Phone home, sensor freezing, car warm | Goes by the sensor; the car is not asked | `test_ft_once_17_*` |
+| FT-ONCE-18 | Phone away, car does not answer | Falls back to the sensor | `test_ft_once_18_*` |
+| FT-ONCE-19 | Phone location unknown | Goes by the sensor | `test_ft_once_19_*` |
 
 ## Live check after each update (read-only)
 
@@ -74,6 +93,7 @@ Done through Home Assistant with no service calls, so nothing is turned on:
 
 First run: 363 passed, 3 expected failures (the findings below), stable over 10 repeated runs.
 After the fixes in 0.6.0: 381 passed, 1 expected failure (FT-3), stable over repeated runs.
+With the one-off ready-by time in 0.7.0: 402 passed, 1 expected failure (FT-3), stable over 5 repeated runs.
 
 | ID | Finding | Severity | Status |
 |---|---|---|---|

@@ -233,11 +233,19 @@
     "button": {
       "request_temperature": {
         "name": "Temperatur abfragen"
+      },
+      "cancel_ready_once": {
+        "name": "Einmalig fertig um abbrechen"
       }
     },
     "date": {
       "pause_until": {
         "name": "Pausiert bis"
+      }
+    },
+    "datetime": {
+      "ready_once": {
+        "name": "Fertig um (einmalig)"
       }
     }
   },

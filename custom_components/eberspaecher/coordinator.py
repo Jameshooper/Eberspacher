@@ -23,6 +23,7 @@ from .api import (
 )
 from .carcheck import CarCheck
 from .learning import DepartureLearner
+from .readyonce import ReadyOnce
 from .reminder import ReminderManager
 from .schedule import ScheduleManager
 from .const import (
@@ -100,6 +101,7 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
         self.scheduler = ScheduleManager(hass, self)
         self.work_scheduler = ScheduleManager(hass, self, LEG_WORK)
         self.reminder = ReminderManager(hass, entry.entry_id)
+        self.ready_once = ReadyOnce(hass, self)
         self.car_check = CarCheck(hass, self)
         # The day each schedule last started the heater, kept over restarts so a restart
         # never lets it start a second time that day.

@@ -686,3 +686,253 @@ async def test_ft_car_12_diagnostics_show_the_last_check(hass, cloud, freezer, n
     data = await async_get_config_entry_diagnostics(hass, entry)
     assert data["car_check"]["last_ok"] is False
     assert data["car_check"]["last_checked"] == "2026-11-07T22:00:06+00:00"  # Sunday 00:00:06 local
+
+
+# --- FT-ONCE: a one-off "be ready by" time ------------------------------------------
+
+ONCE = "datetime.van_ready_by_one_off"
+CANCEL = "button.van_cancel_one_off_ready_by"
+SUN = local(2026, 11, 8)                                  # a Sunday: not in the weekday list
+
+
+async def set_once(hass, when):
+    await hass.services.async_call(
+        "datetime", "set_value",
+        {"entity_id": ONCE, "datetime": when.isoformat()}, blocking=True)
+    await hass.async_block_till_done()
+
+
+async def make_once(hass, freezer, outside="-12", at=(6, 0), options=HOME):
+    entry, notes = await make(hass, freezer, options, SUN.replace(hour=at[0], minute=at[1]), outside)
+    return entry, notes
+
+
+@pytest.mark.parametrize(
+    ("outside", "runtime", "start"),
+    [("-12", 100, (8, 20)), ("-5", 70, (8, 50)), ("4", 40, (9, 20))],
+)
+async def test_ft_once_01_starts_when_needed_for_the_bands_time(
+    hass, cloud, freezer, outside, runtime, start
+):
+    entry, notes = await make_once(hass, freezer, outside)
+    await set_once(hass, SUN.replace(hour=10))
+    assert hass.states.get(ONCE).attributes["start_times"] == ["08:20", "08:50", "09:20"]
+    for wake in ((8, 20), (8, 50), (9, 20)):
+        before = len(starts(cloud))
+        await clock(hass, freezer, SUN.replace(hour=wake[0], minute=wake[1]))
+        assert (len(starts(cloud)) - before == 1) == (wake == start), wake
+    assert starts(cloud)[0]["runtime"] == runtime
+    assert notes[-1].data["title"] == "Car heating started"
+    assert "ready by 10:00" in notes[-1].data["message"]
+
+
+async def test_ft_once_02_clears_itself_and_leaves_the_schedule_alone(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert len(starts(cloud)) == 1
+    state = hass.states.get(ONCE)
+    assert state.state == "unknown"
+    assert state.attributes["last_result"] == "Heating 100 min at 08:20"
+    assert entry.runtime_data.started_on == {}                 # the normal schedule is untouched
+    await clock(hass, freezer, SUN.replace(hour=8, minute=50))
+    assert len(starts(cloud)) == 1
+
+
+async def test_ft_once_03_set_late_starts_at_once(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer, at=(9, 0))
+    await set_once(hass, SUN.replace(hour=10))                # 100 min needed, 60 left
+    assert [s["runtime"] for s in starts(cloud)] == [100]
+    assert hass.states.get(ONCE).state == "unknown"
+
+
+async def test_ft_once_04_warm_day_says_not_needed_and_clears(hass, cloud, freezer):
+    entry, notes = await make_once(hass, freezer, outside="14")
+    await set_once(hass, SUN.replace(hour=10))
+    for wake in ((8, 20), (8, 50)):
+        await clock(hass, freezer, SUN.replace(hour=wake[0], minute=wake[1]))
+        assert notes == [] and hass.states.get(ONCE).state != "unknown"
+    await clock(hass, freezer, SUN.replace(hour=9, minute=20))
+    assert starts(cloud) == []
+    assert "not needed" in notes[-1].data["title"]
+    assert hass.states.get(ONCE).state == "unknown"
+
+
+async def test_ft_once_05_ignores_weekdays_pause_and_the_phone(
+    hass, cloud, freezer, monkeypatch
+):
+    from custom_components.eberspaecher import schedule as schedule_module
+    monkeypatch.setattr(schedule_module, "CAR_READING_WAIT", 0)
+    entry, _ = await make_once(hass, freezer, options={**HOME, **LEARN})
+    hass.states.async_set(TRACKER, "not_home")
+    await hass.services.async_call("date", "set_value",
+                                   {"entity_id": PAUSE, "date": "2026-11-10"}, blocking=True)
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert len(starts(cloud)) == 1
+
+
+async def test_ft_once_06_cancel_with_the_button(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=10))
+    await hass.services.async_call("button", "press", {"entity_id": CANCEL}, blocking=True)
+    assert hass.states.get(ONCE).state == "unknown"
+    await run_day(hass, freezer, SUN.date(), (time(8, 20), time(8, 50), time(9, 20)))
+    assert starts(cloud) == []
+
+
+async def test_ft_once_07_a_time_in_the_past_is_not_planned(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=5))
+    state = hass.states.get(ONCE)
+    assert state.state == "unknown" and state.attributes["start_times"] == []
+    assert state.attributes["last_result"] == "One-off ready time passed without a start"
+    assert starts(cloud) == []
+
+
+async def test_ft_once_08_a_new_time_replaces_the_old_plan(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=10))
+    await set_once(hass, SUN.replace(hour=12))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert starts(cloud) == []
+    await clock(hass, freezer, SUN.replace(hour=10, minute=20))
+    assert len(starts(cloud)) == 1
+
+
+async def test_ft_once_09_survives_a_restart(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=10))
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.ready_once.ready_at == SUN.replace(hour=10).astimezone(dt_util.UTC)
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert len(starts(cloud)) == 1
+
+
+async def test_ft_once_10_a_restart_after_the_time_has_passed_drops_it(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=9))
+    await hass.config_entries.async_unload(entry.entry_id)
+    await clock(hass, freezer, SUN.replace(hour=10))
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.ready_once.ready_at is None
+    assert starts(cloud) == []
+
+
+async def test_ft_once_11_a_running_heater_is_left_alone(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer)
+    set_heater_reply(cloud, heater(state="ON", heaterState="ON"))
+    await entry.runtime_data.async_refresh()
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert starts(cloud) == []
+    assert hass.states.get(ONCE).state == "unknown"
+    assert "already running" in hass.states.get(ONCE).attributes["last_result"]
+
+
+async def test_ft_once_12_a_failed_start_tries_again_at_the_next_wakeup(hass, cloud, freezer):
+    entry, notes = await make_once(hass, freezer, outside="-5")
+    await set_once(hass, SUN.replace(hour=10))
+    cloud.clear_requests()
+    cloud.post(f"{BASE_URL}/authenticate", json={"token": "tok-1"})
+    cloud.get(f"{BASE_URL}/calls", json=[{"imei": IMEI, "name": "Van"}])
+    cloud.get(f"{BASE_URL}/calls/{IMEI}/heaters", json=[heater()])
+    cloud.put(f"{BASE_URL}/calls/{IMEI}/heaters/1", status=500)
+    await clock(hass, freezer, SUN.replace(hour=8, minute=50))
+    assert "failed" in notes[-1].data["title"]
+    assert hass.states.get(ONCE).state != "unknown"           # still planned
+    set_heater_reply(cloud, heater())
+    await clock(hass, freezer, SUN.replace(hour=9, minute=20))
+    assert len(starts(cloud)) == 1
+
+
+async def test_ft_once_13_no_reading_says_so_and_clears(hass, cloud, freezer, monkeypatch):
+    from custom_components.eberspaecher import schedule as schedule_module
+    monkeypatch.setattr(schedule_module, "CAR_READING_WAIT", 0)
+    entry, notes = await make_once(hass, freezer)
+    hass.states.async_set(OUTSIDE, "unavailable")
+    await set_once(hass, SUN.replace(hour=10))
+    for wake in ((8, 20), (8, 50), (9, 20)):
+        await clock(hass, freezer, SUN.replace(hour=wake[0], minute=wake[1]))
+    assert starts(cloud) == []
+    assert "not started" in notes[-1].data["title"]
+    assert hass.states.get(ONCE).state == "unknown"
+
+
+async def test_ft_once_14_other_heating_bands_are_used(hass, cloud, freezer):
+    entry, _ = await make_once(hass, freezer, outside="-12")
+    r = await open_options(hass, entry, "heating_bands")
+    await hass.config_entries.options.async_configure(r["flow_id"], {
+        "no_heat_above": 10, "mild_runtime": 30, "cold_below": 0, "cold_runtime": 60,
+        "very_cold_below": -10, "very_cold_runtime": 90})
+    await hass.async_block_till_done()
+    await set_once(hass, SUN.replace(hour=10))
+    assert hass.states.get(ONCE).attributes["start_times"] == ["08:30", "09:00", "09:30"]
+    await clock(hass, freezer, SUN.replace(hour=8, minute=30))
+    assert starts(cloud)[0]["runtime"] == 90
+
+
+async def test_ft_once_15_diagnostics_show_it(hass, cloud, freezer):
+    from custom_components.eberspaecher.diagnostics import async_get_config_entry_diagnostics
+
+    entry, _ = await make_once(hass, freezer)
+    await set_once(hass, SUN.replace(hour=10))
+    data = await async_get_config_entry_diagnostics(hass, entry)
+    assert data["ready_once"]["ready_at"] == "2026-11-08T08:00:00+00:00"
+
+
+async def car_says(cloud, entry, temperature):
+    set_heater_reply(cloud, heater(lastMeasuredTemperature={"temperature": temperature}))
+    await entry.runtime_data.async_refresh()
+
+
+@pytest.fixture
+def car_no_wait(monkeypatch):
+    from custom_components.eberspaecher import schedule as schedule_module
+    monkeypatch.setattr(schedule_module, "CAR_READING_WAIT", 0)
+
+
+async def test_ft_once_16_phone_away_goes_by_the_car_not_the_home_sensor(
+    hass, cloud, freezer, car_no_wait
+):
+    entry, _ = await make_once(hass, freezer, outside="14", options={**HOME, **LEARN})
+    hass.states.async_set(TRACKER, "not_home")
+    await car_says(cloud, entry, -12)                         # warm at home, freezing at the car
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert [s["runtime"] for s in starts(cloud)] == [100]
+    assert len(calls_to(cloud, "POST", "/temperature")) == 1
+
+
+async def test_ft_once_17_phone_home_goes_by_the_home_sensor_not_the_car(
+    hass, cloud, freezer, car_no_wait
+):
+    entry, _ = await make_once(hass, freezer, outside="-12", options={**HOME, **LEARN})
+    await car_says(cloud, entry, 14)                          # freezing at home, warm car reading
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert [s["runtime"] for s in starts(cloud)] == [100]
+    assert calls_to(cloud, "POST", "/temperature") == []
+
+
+async def test_ft_once_18_phone_away_and_a_silent_car_falls_back_to_the_sensor(
+    hass, cloud, freezer, car_no_wait
+):
+    entry, notes = await make_once(hass, freezer, outside="-12", options={**HOME, **LEARN})
+    hass.states.async_set(TRACKER, "not_home")                # the cloud has no reading
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert [s["runtime"] for s in starts(cloud)] == [100]
+    assert "from sensor.outside" in notes[-1].data["message"]
+
+
+async def test_ft_once_19_phone_location_unknown_uses_the_sensor(hass, cloud, freezer, car_no_wait):
+    entry, _ = await make_once(hass, freezer, outside="-12", options={**HOME, **LEARN})
+    hass.states.async_set(TRACKER, "unavailable")
+    await car_says(cloud, entry, 14)
+    await set_once(hass, SUN.replace(hour=10))
+    await clock(hass, freezer, SUN.replace(hour=8, minute=20))
+    assert [s["runtime"] for s in starts(cloud)] == [100]
+    assert calls_to(cloud, "POST", "/temperature") == []

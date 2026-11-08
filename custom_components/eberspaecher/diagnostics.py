@@ -90,6 +90,14 @@ async def async_get_config_entry_diagnostics(
         "paused_until": (
             coordinator.paused_until.isoformat() if coordinator.paused_until else None
         ),
+        "ready_once": {
+            "ready_at": (
+                coordinator.ready_once.ready_at.isoformat()
+                if coordinator.ready_once.ready_at
+                else None
+            ),
+            "last_result": coordinator.ready_once.last_result,
+        },
         "car_check": {
             "last_checked": (
                 coordinator.car_check.last_checked.isoformat()

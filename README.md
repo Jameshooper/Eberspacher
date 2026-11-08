@@ -210,6 +210,25 @@ actions:
     data: { runtime: 100 }
 ```
 
+## One-off "ready by" time
+
+For a day that is not your routine, such as driving someone to work early on a Sunday, set
+**Ready by (one-off)** to the date and time the car should be ready. The heater starts when
+it is needed, by the same heating bands as the schedule: the colder it is, the earlier it
+starts (for example at −5 °C it starts 70 minutes before). It checks the temperature at each
+possible start time. If your phone is at home it uses the schedule's outdoor sensor; if your
+phone is away it asks the car itself for a fresh reading (and uses the sensor only if the car
+does not answer). Without a sensor it always asks the car. Knowing where your phone is needs
+the phone location set under **Configure → Learning**; without it the sensor is used.
+
+- If you set it after the start time has already passed, it starts at once.
+- It ignores the weekday list, the **Pause until** date and where your phone is, because you
+  asked for it on purpose.
+- You get the same messages as the schedule. It clears itself once it has started, found it
+  was not needed, or the time passed. A running heater is left alone.
+- **Cancel one-off ready by** clears it. It is kept over a Home Assistant restart.
+- It works from automations and voice too: call `datetime.set_value` on the entity.
+
 ## Idle reminder
 
 A heater that sits unused for months, such as over the summer, should be run now and then

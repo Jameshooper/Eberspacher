@@ -42,6 +42,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_late": "Skipped: the {time} wake-up came too late",
         "car_check_title": "Car unit not answering",
         "car_check_body": "{name} did not answer this week's check. The heater may not start from Home Assistant or the app. Check the car battery and the EasyStart unit's SIM.",
+        "result_once_expired": "One-off ready time passed without a start",
+        "result_once_running": "One-off done: the heater was already running",
     },
     "de": {
         "started_title_heating": "Auto-Heizung gestartet",
@@ -75,6 +77,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_late": "Übersprungen: der Weckzeitpunkt {time} kam zu spät",
         "car_check_title": "Gerät im Auto antwortet nicht",
         "car_check_body": "{name} hat auf die wöchentliche Prüfung nicht geantwortet. Die Standheizung startet eventuell nicht über Home Assistant oder die App. Prüfe die Autobatterie und die SIM des EasyStart-Geräts.",
+        "result_once_expired": "Einmalige Fertigzeit verstrichen, ohne zu starten",
+        "result_once_running": "Einmalig erledigt: Die Standheizung lief bereits",
     },
     "sv": {
         "started_title_heating": "Bilvärmen startad",
@@ -108,6 +112,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_late": "Hoppade över: väckningen {time} kom för sent",
         "car_check_title": "Enheten i bilen svarar inte",
         "car_check_body": "{name} svarade inte på veckans kontroll. Värmaren kanske inte startar från Home Assistant eller appen. Kontrollera bilbatteriet och EasyStart-enhetens SIM-kort.",
+        "result_once_expired": "Engångstiden passerade utan start",
+        "result_once_running": "Engång klar: värmaren var redan igång",
     },
     "fi": {
         "started_title_heating": "Auton lämmitys käynnistetty",
@@ -141,6 +147,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "result_late": "Ohitettu: herätys {time} tuli liian myöhään",
         "car_check_title": "Auton laite ei vastaa",
         "car_check_body": "{name} ei vastannut viikon tarkistukseen. Lämmitin ei ehkä käynnisty Home Assistantista tai sovelluksesta. Tarkista auton akku ja EasyStart-laitteen SIM-kortti.",
+        "result_once_expired": "Kertaluonteinen valmis-aika meni ohi ilman käynnistystä",
+        "result_once_running": "Kertaluonteinen valmis: lämmitin oli jo käynnissä",
     },
 }
 

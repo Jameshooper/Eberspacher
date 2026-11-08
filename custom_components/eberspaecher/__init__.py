@@ -14,6 +14,7 @@ from .coordinator import EberspaecherCoordinator, idle_interval
 
 PLATFORMS: list[Platform] = [
     Platform.DATE,
+    Platform.DATETIME,
     Platform.SWITCH,
     Platform.NUMBER,
     Platform.SENSOR,
@@ -52,6 +53,7 @@ def _configure(coordinator: EberspaecherCoordinator, entry: EberspaecherConfigEn
     coordinator.work_scheduler.async_configure(options)
     coordinator.reminder.async_configure(options)
     coordinator.car_check.async_configure(options)
+    coordinator.ready_once.async_replan()
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> None:
@@ -77,5 +79,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry
     await entry.runtime_data.learner.async_shutdown()
     await entry.runtime_data.reminder.async_shutdown()
     entry.runtime_data.car_check.async_stop()
+    entry.runtime_data.ready_once.async_stop()
     await entry.runtime_data.async_shutdown()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
