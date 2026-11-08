@@ -165,6 +165,8 @@ def test_launcher_page_opens_the_panel_from_the_home_screen():
 
 
 def test_launcher_page_has_its_own_standalone_manifest():
+    import json
+
     page = (WWW / "app.html").read_text()
     assert "/eberspaecher_static/app.webmanifest" in page
     m = json.loads((WWW / "app.webmanifest").read_text())
