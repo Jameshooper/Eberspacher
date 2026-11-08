@@ -238,7 +238,7 @@ The integration adds an **Optima** page to the Home Assistant sidebar: a full-sc
 - **Car sensors (optional):** under Configure, **Sidebar panel**, pick sensors from your car's own integration for the EV and fuel level, ranges, odometer and 12 V battery. Whatever you leave empty is not shown. The panel can also be switched off there.
 - **Languages:** English, German, Swedish and Finnish, from the Home Assistant language setting.
 
-The car picture has the licence plate blurred. Replace `custom_components/eberspaecher/www/car.webp` with your own picture if you like (the day and night lights are placed for a 480 x 316 picture of the car from the front).
+The car picture shows a made-up plate (FIN-123). Replace `custom_components/eberspaecher/www/car.webp` with your own picture if you like (the day and night lights are placed for a 480 x 316 picture of the car from the front).
 
 ## Idle reminder
 
