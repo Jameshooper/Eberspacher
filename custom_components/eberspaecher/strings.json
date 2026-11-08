@@ -56,7 +56,8 @@
           "learning": "Learn departure times",
           "heating_bands": "Heating bands",
           "ventilation": "Summer ventilation",
-          "reminder": "Idle reminder"
+          "reminder": "Idle reminder",
+          "hud": "Sidebar panel"
         }
       },
       "polling": {
@@ -142,6 +143,19 @@
           "learn_state": "For example CarPlay.",
           "learn_tracker": "The phone's device tracker or person.",
           "learn_margin": "Minutes before the usual departure."
+        }
+      },
+      "hud": {
+        "title": "Sidebar panel",
+        "description": "Show the control panel (Optima) in the sidebar. It uses your Home Assistant login. On a phone, open it and use Share, then Add to Home Screen, to get a web app. The car sensors below are optional: choose them to show charge, fuel, range, odometer and 12 V battery in the panel.",
+        "data": {
+          "hud_enabled": "Show the panel",
+          "hud_ev": "EV battery level",
+          "hud_fuel": "Fuel level",
+          "hud_ev_range": "EV range",
+          "hud_fuel_range": "Petrol range",
+          "hud_odometer": "Odometer",
+          "hud_battery_12v": "12 V battery"
         }
       }
     },

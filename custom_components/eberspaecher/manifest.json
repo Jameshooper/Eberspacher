@@ -2,6 +2,9 @@
   "domain": "eberspaecher",
   "name": "Eberspächer EasyStart Web",
   "after_dependencies": [
+    "frontend",
+    "http",
+    "panel_custom",
     "recorder"
   ],
   "codeowners": [
@@ -12,5 +15,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Jameshooper/Eberspacher/issues",
   "requirements": [],
-  "version": "0.7.0"
+  "version": "0.8.0"
 }

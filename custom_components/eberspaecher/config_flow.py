@@ -40,6 +40,13 @@ from .const import (
     CONF_CAR_CHECK_ENABLED,
     CONF_COLD_BELOW,
     CONF_COLD_RUNTIME,
+    CONF_HUD_BATTERY_12V,
+    CONF_HUD_ENABLED,
+    CONF_HUD_EV,
+    CONF_HUD_EV_RANGE,
+    CONF_HUD_FUEL,
+    CONF_HUD_FUEL_RANGE,
+    CONF_HUD_ODOMETER,
     CONF_IDLE_INTERVAL,
     CONF_LEARN_ENABLED,
     CONF_LEARN_ENTITY,
@@ -217,6 +224,7 @@ class EberspaecherOptionsFlow(OptionsFlow):
                 "heating_bands",
                 "ventilation",
                 "reminder",
+                "hud",
             ],
         )
 
@@ -497,3 +505,35 @@ class EberspaecherOptionsFlow(OptionsFlow):
             }
         )
         return self.async_show_form(step_id="learning", data_schema=schema, errors=errors)
+
+    async def async_step_hud(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The sidebar panel, and the optional car sensors it shows."""
+        if user_input is not None:
+            return self._save(
+                **{
+                    **{key: None for key in HUD_SENSORS},
+                    **user_input,
+                    CONF_HUD_ENABLED: bool(user_input.get(CONF_HUD_ENABLED, True)),
+                }
+            )
+        options = self.config_entry.options
+        fields: dict[Any, Any] = {
+            vol.Required(CONF_HUD_ENABLED, default=bool(options.get(CONF_HUD_ENABLED, True))): BooleanSelector()
+        }
+        for key in HUD_SENSORS:
+            fields[vol.Optional(key, description={"suggested_value": options.get(key)})] = (
+                EntitySelector(EntitySelectorConfig(domain="sensor"))
+            )
+        return self.async_show_form(step_id="hud", data_schema=vol.Schema(fields))
+
+
+HUD_SENSORS = (
+    CONF_HUD_EV,
+    CONF_HUD_FUEL,
+    CONF_HUD_EV_RANGE,
+    CONF_HUD_FUEL_RANGE,
+    CONF_HUD_ODOMETER,
+    CONF_HUD_BATTERY_12V,
+)

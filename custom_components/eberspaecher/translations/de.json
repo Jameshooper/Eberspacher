@@ -56,7 +56,8 @@
           "learning": "Abfahrtszeiten lernen",
           "heating_bands": "Heizstufen",
           "ventilation": "Sommerlüftung",
-          "reminder": "Erinnerung bei Stillstand"
+          "reminder": "Erinnerung bei Stillstand",
+          "hud": "Seitenleisten-Panel"
         }
       },
       "polling": {
@@ -142,6 +143,19 @@
           "learn_state": "Zum Beispiel CarPlay.",
           "learn_tracker": "Der Gerätetracker oder die Person des Handys.",
           "learn_margin": "Minuten vor der üblichen Abfahrt."
+        }
+      },
+      "hud": {
+        "title": "Seitenleisten-Panel",
+        "description": "Das Bedienfeld (Optima) in der Seitenleiste anzeigen. Es nutzt Ihre Home-Assistant-Anmeldung. Auf dem Handy öffnen und über Teilen, Zum Home-Bildschirm eine Web-App anlegen. Die Fahrzeugsensoren unten sind optional: Wählen Sie sie, um Ladung, Tank, Reichweite, Kilometerstand und 12-V-Batterie im Panel zu zeigen.",
+        "data": {
+          "hud_enabled": "Panel anzeigen",
+          "hud_ev": "EV-Akkustand",
+          "hud_fuel": "Tankfüllung",
+          "hud_ev_range": "EV-Reichweite",
+          "hud_fuel_range": "Benzin-Reichweite",
+          "hud_odometer": "Kilometerstand",
+          "hud_battery_12v": "12-V-Batterie"
         }
       }
     },

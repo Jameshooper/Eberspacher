@@ -56,7 +56,8 @@
           "learning": "Opi lähtöajat",
           "heating_bands": "Lämmitystasot",
           "ventilation": "Kesätuuletus",
-          "reminder": "Muistutus käyttämättömyydestä"
+          "reminder": "Muistutus käyttämättömyydestä",
+          "hud": "Sivupalkin paneeli"
         }
       },
       "polling": {
@@ -142,6 +143,19 @@
           "learn_state": "Esimerkiksi CarPlay.",
           "learn_tracker": "Puhelimen laitteenseuranta tai henkilö.",
           "learn_margin": "Minuutteja tavallista lähtöä ennen."
+        }
+      },
+      "hud": {
+        "title": "Sivupalkin paneeli",
+        "description": "Näytä ohjauspaneeli (Optima) sivupalkissa. Se käyttää Home Assistant -kirjautumistasi. Puhelimella avaa se ja valitse Jaa, sitten Lisää Koti-valikkoon, niin saat verkkosovelluksen. Auton anturit alla ovat valinnaisia: valitse ne, niin paneelissa näkyvät lataus, polttoaine, kantama, matkamittari ja 12 V akku.",
+        "data": {
+          "hud_enabled": "Näytä paneeli",
+          "hud_ev": "Sähköakun taso",
+          "hud_fuel": "Polttoaineen taso",
+          "hud_ev_range": "Sähkökantama",
+          "hud_fuel_range": "Bensiinikantama",
+          "hud_odometer": "Matkamittari",
+          "hud_battery_12v": "12 V akku"
         }
       }
     },

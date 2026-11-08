@@ -88,3 +88,12 @@ LEG_WORK = "work"
 WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 # The device the schedule controls, chosen once and kept (config entry data).
 CONF_SCHEDULE_DEVICE = "schedule_device"
+
+# The control panel in the sidebar (see panel.py). The car sensors are optional.
+CONF_HUD_ENABLED = "hud_enabled"
+CONF_HUD_EV = "hud_ev"
+CONF_HUD_FUEL = "hud_fuel"
+CONF_HUD_EV_RANGE = "hud_ev_range"
+CONF_HUD_FUEL_RANGE = "hud_fuel_range"
+CONF_HUD_ODOMETER = "hud_odometer"
+CONF_HUD_BATTERY_12V = "hud_battery_12v"

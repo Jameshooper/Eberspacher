@@ -229,6 +229,17 @@ the phone location set under **Configure → Learning**; without it the sensor i
 - **Cancel one-off ready by** clears it. It is kept over a Home Assistant restart.
 - It works from automations and voice too: call `datetime.set_value` on the entity.
 
+## Control panel (sidebar and phone)
+
+The integration adds an **Optima** page to the Home Assistant sidebar: a full-screen view of the car with start and stop buttons, the run time, the car's temperature (and a button to ask for a fresh one), the schedule switch, the one-off ready-by time and when the heater last ran. The car picture glows for day and night from `sun.sun` and shows the heater working.
+
+- **Login:** the page runs inside Home Assistant, so it uses your normal Home Assistant login. It has no server, port or password of its own, and it can only read and control this integration's entities (and the car sensors you pick below).
+- **On a phone:** open the Optima page in Safari (or Chrome), then Share, **Add to Home Screen**. It opens full screen like an app. Away from home it works the same way your Home Assistant does (for example through Tailscale or Home Assistant Cloud).
+- **Car sensors (optional):** under Configure, **Sidebar panel**, pick sensors from your car's own integration for the EV and fuel level, ranges, odometer and 12 V battery. Whatever you leave empty is not shown. The panel can also be switched off there.
+- **Languages:** English, German, Swedish and Finnish, from the Home Assistant language setting.
+
+The car picture has the licence plate blurred. Replace `custom_components/eberspaecher/www/car.webp` with your own picture if you like (the day and night lights are placed for a 480 x 316 picture of the car from the front).
+
 ## Idle reminder
 
 A heater that sits unused for months, such as over the summer, should be run now and then

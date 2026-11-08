@@ -56,7 +56,8 @@
           "learning": "Lär in avfärdstider",
           "heating_bands": "Värmenivåer",
           "ventilation": "Sommarventilation",
-          "reminder": "Påminnelse vid stillestånd"
+          "reminder": "Påminnelse vid stillestånd",
+          "hud": "Sidopanel"
         }
       },
       "polling": {
@@ -142,6 +143,19 @@
           "learn_state": "Till exempel CarPlay.",
           "learn_tracker": "Telefonens enhetsspårare eller person.",
           "learn_margin": "Minuter före den vanliga avfärden."
+        }
+      },
+      "hud": {
+        "title": "Sidopanel",
+        "description": "Visa kontrollpanelen (Optima) i sidofältet. Den använder din Home Assistant-inloggning. På mobilen: öppna den och välj Dela, sedan Lägg till på hemskärmen, för en webbapp. Bilsensorerna nedan är valfria: välj dem för att visa laddning, bränsle, räckvidd, mätarställning och 12 V-batteri i panelen.",
+        "data": {
+          "hud_enabled": "Visa panelen",
+          "hud_ev": "Elbatterinivå",
+          "hud_fuel": "Bränslenivå",
+          "hud_ev_range": "Elräckvidd",
+          "hud_fuel_range": "Bensinräckvidd",
+          "hud_odometer": "Mätarställning",
+          "hud_battery_12v": "12 V-batteri"
         }
       }
     },

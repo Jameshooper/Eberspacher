@@ -11,6 +11,7 @@ from homeassistant.helpers.storage import Store
 from .api import EberspaecherApi
 from .const import DOMAIN
 from .coordinator import EberspaecherCoordinator, idle_interval
+from .panel import async_register_panel, async_remove_panel
 
 PLATFORMS: list[Platform] = [
     Platform.DATE,
@@ -42,6 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry)
     _configure(coordinator, entry)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await async_register_panel(hass, coordinator)
     return True
 
 
@@ -60,6 +62,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: EberspaecherConfigE
     """Apply changed options without a reload."""
     coordinator = entry.runtime_data
     _configure(coordinator, entry)
+    await async_register_panel(hass, coordinator)
     interval = idle_interval(entry)
     if interval != coordinator.idle_interval:
         coordinator.idle_interval = interval
@@ -74,6 +77,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry
 
 async def async_unload_entry(hass: HomeAssistant, entry: EberspaecherConfigEntry) -> bool:
     """Unload a config entry."""
+    async_remove_panel(hass)
     entry.runtime_data.scheduler.async_stop()
     entry.runtime_data.work_scheduler.async_stop()
     await entry.runtime_data.learner.async_shutdown()
