@@ -75,11 +75,15 @@
           "ready_by": "Auto fertig um",
           "weekdays": "Tage",
           "temperature_entity": "Außentemperatursensor",
-          "notify_service": "Benachrichtigungsdienst"
+          "notify_service": "Benachrichtigungsdienst",
+          "alt_ready_by": "Auto bereit um (zweite Tage, optional)",
+          "alt_weekdays": "Tage für die zweite Zeit",
+          "alt_learned_only": "Nur an gelernten Tagen (zweite Tage)"
         },
         "data_description": {
           "temperature_entity": "Optional. Ein Sensor mit der Außentemperatur in °C.",
-          "notify_service": "Optional. Zum Beispiel notify.mobile_app_dein_handy. Sendet eine Nachricht, wenn die Heizung startet, nicht startet oder nicht nötig ist."
+          "notify_service": "Optional. Zum Beispiel notify.mobile_app_dein_handy. Sendet eine Nachricht, wenn die Heizung startet, nicht startet oder nicht nötig ist.",
+          "alt_learned_only": "Überspringt einen Tag der zweiten Gruppe, wenn dafür keine Zeit gelernt wurde. Mit wechselnden Wochen heizt es nur in den Wochen, in denen du wirklich fährst."
         }
       },
       "heating_bands": {
@@ -136,13 +140,15 @@
           "learn_entity": "Abfahrtssensor",
           "learn_state": "Zustand für „eingestiegen“",
           "learn_tracker": "Handy-Standort",
-          "learn_margin": "So viel früher fertig"
+          "learn_margin": "So viel früher fertig",
+          "learn_alternate": "Gerade und ungerade Wochen getrennt lernen"
         },
         "data_description": {
           "learn_entity": "Zum Beispiel der Sensor „Audioausgabe“ des iPhones.",
           "learn_state": "Zum Beispiel CarPlay.",
           "learn_tracker": "Der Gerätetracker oder die Person des Handys.",
-          "learn_margin": "Minuten vor der üblichen Abfahrt."
+          "learn_margin": "Minuten vor der üblichen Abfahrt.",
+          "learn_alternate": "Hält jede zweite Woche getrennt (zum Beispiel die Wochenenden, an denen du jemanden zur Arbeit fährst). Braucht etwa 6 Wochen, bis es einem Muster traut."
         }
       },
       "hud": {
@@ -217,6 +223,12 @@
       },
       "schedule": {
         "name": "Zeitplan"
+      },
+      "learn": {
+        "name": "Zeiten lernen"
+      },
+      "alt_enabled": {
+        "name": "Zweite Tage an"
       }
     },
     "number": {
@@ -261,6 +273,14 @@
       "ready_once": {
         "name": "Fertig um (einmalig)"
       }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Bereit um (erste Tage)"
+      },
+      "alt_ready_by": {
+        "name": "Bereit um (zweite Tage)"
+      }
     }
   },
   "exceptions": {
@@ -275,6 +295,12 @@
     },
     "mode_unsupported": {
       "message": "Diese Standheizung unterstützt {mode} nicht"
+    },
+    "learn_needs_signal": {
+      "message": "Aktiviere zuerst das Lernen in den Optionen: Es braucht ein Signal fürs Einsteigen und den Standort deines Handys"
+    },
+    "runtime_too_long": {
+      "message": "Die längste Laufzeit passt nicht vor diese Zeit"
     }
   }
 }

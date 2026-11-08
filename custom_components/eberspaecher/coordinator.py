@@ -110,8 +110,14 @@ class EberspaecherCoordinator(DataUpdateCoordinator[dict[str, EberspaecherDevice
             hass, 1, f"{DOMAIN}.{entry.entry_id}.schedule"
         )
         # A newly learned time moves the start times.
+        self.learner.on_learned = self._learned
         self.learner.async_add_listener(self.scheduler.async_replan)
         self.learner.async_add_listener(self.work_scheduler.async_replan)
+
+    def _learned(self, leg: str, day: Any, minutes: int) -> None:
+        """A new or changed departure time was learned: tell the leg it belongs to."""
+        scheduler = self.work_scheduler if leg == LEG_WORK else self.scheduler
+        scheduler.async_announce_learned(day, minutes)
 
     @property
     def primary_imei(self) -> str | None:

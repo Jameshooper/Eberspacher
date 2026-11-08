@@ -26,6 +26,9 @@ from homeassistant.util import dt as dt_util
 
 from .api import EberspaecherError
 from .const import (
+    CONF_ALT_ENABLED,
+    CONF_ALT_READY_BY,
+    CONF_ALT_WEEKDAYS,
     CONF_COLD_BELOW,
     CONF_COLD_RUNTIME,
     CONF_LEARN_TRACKER,
@@ -82,6 +85,9 @@ class ScheduleConfig:
     enabled: bool = False
     ready_by: time = time(8, 10)
     weekdays: tuple[str, ...] = ("mon", "tue", "wed", "thu", "fri")
+    alt_ready_by: time | None = None
+    alt_weekdays: tuple[str, ...] = ("sat", "sun")
+    alt_learned_only: bool = False
     temperature_entity: str | None = None
     notify_service: str | None = None
     no_heat_above: float = 10
@@ -112,10 +118,19 @@ class ScheduleConfig:
             weekdays = tuple(
                 d for d in values.get("weekdays", defaults.weekdays) if d in WEEKDAYS
             )
+            alt_ready = values.get("alt_ready_by") if options.get(CONF_ALT_ENABLED, True) else None
+            if isinstance(alt_ready, str):
+                alt_ready = time.fromisoformat(alt_ready)
+            alt_weekdays = tuple(
+                d for d in values.get("alt_weekdays", defaults.alt_weekdays) if d in WEEKDAYS
+            )
             return cls(
                 enabled=bool(values.get("enabled", defaults.enabled)),
                 ready_by=ready,
                 weekdays=weekdays,
+                alt_ready_by=alt_ready,
+                alt_weekdays=alt_weekdays,
+                alt_learned_only=bool(values.get("alt_learned_only", False)),
                 temperature_entity=values.get("temperature_entity"),
                 notify_service=values.get("notify_service"),
                 no_heat_above=float(values.get("no_heat_above", defaults.no_heat_above)),
@@ -142,6 +157,8 @@ _OPTION_KEYS = {"enabled": CONF_SCHEDULE_ENABLED}
 for _name, _key in (
     ("ready_by", CONF_READY_BY),
     ("weekdays", CONF_WEEKDAYS),
+    ("alt_ready_by", CONF_ALT_READY_BY),
+    ("alt_weekdays", CONF_ALT_WEEKDAYS),
     ("temperature_entity", CONF_TEMPERATURE_ENTITY),
     ("notify_service", CONF_NOTIFY_SERVICE),
     ("no_heat_above", CONF_NO_HEAT_ABOVE),
@@ -177,6 +194,8 @@ def _work_view(options: dict[str, Any]) -> dict[str, Any]:
             view[home] = options[work]
     if view.get(CONF_READY_BY) in (None, ""):
         view[CONF_READY_BY] = DEFAULT_WORK_READY_BY
+    # The second group of days belongs to leaving home only.
+    view.pop(CONF_ALT_READY_BY, None)
     return view
 
 
@@ -228,7 +247,8 @@ def possible_runtimes(cfg: ScheduleConfig) -> set[int]:
 
 def longest_runtime_fits(cfg: ScheduleConfig) -> bool:
     """Whether the longest run still starts after midnight on the same day."""
-    minutes = cfg.ready_by.hour * 60 + cfg.ready_by.minute
+    times = [cfg.ready_by] + ([cfg.alt_ready_by] if cfg.alt_ready_by else [])
+    minutes = min(t.hour * 60 + t.minute for t in times)
     return max(possible_runtimes(cfg)) <= minutes
 
 
@@ -293,7 +313,7 @@ class ScheduleManager:
         """(Re)build the wake-ups from the options."""
         self.async_stop()
         self.config = ScheduleConfig.from_options(options, self.leg)
-        if self.config.enabled and self.config.weekdays:
+        if self._has_days():
             # Learned ready-by times differ by day, so plan again every night.
             self._timers.append(
                 async_track_time_change(
@@ -319,7 +339,7 @@ class ScheduleManager:
         for unsub in self._unsubs:
             unsub()
         self._unsubs = []
-        if not (self.config.enabled and self.config.weekdays):
+        if not self._has_days():
             return
         for t in start_times(self.config_for(dt_util.now().date())):
             self._unsubs.append(
@@ -341,14 +361,68 @@ class ScheduleManager:
         self._unsubs = []
         self._timers = []
 
+    def _has_days(self) -> bool:
+        cfg = self.config
+        return cfg.enabled and bool(cfg.weekdays or (cfg.alt_ready_by and cfg.alt_weekdays))
+
+    def _in_alt_group(self, day: date) -> bool:
+        cfg = self.config
+        return bool(cfg.alt_ready_by) and WEEKDAYS[day.weekday()] in cfg.alt_weekdays
+
+    def next_plan(self) -> tuple[date, time, bool] | None:
+        """The next day the schedule can start, its ready-by time, and whether it was learned."""
+        if not self._has_days():
+            return None
+        now = dt_util.now()
+        for offset in range(15):
+            day = now.date() + timedelta(days=offset)
+            cfg = self.config_for(day)
+            if WEEKDAYS[day.weekday()] not in cfg.weekdays or self.paused_on(day):
+                continue
+            if offset == 0 and (
+                self.coordinator.started_on.get(self.leg) == day.isoformat()
+                or now.time() >= cfg.ready_by
+            ):
+                continue
+            return day, cfg.ready_by, cfg.ready_by != self.day_config(day).ready_by
+        return None
+
+    @callback
+    def async_announce_learned(self, day: date, minutes: int) -> None:
+        """Say that a new time was learned, so a wrong guess is easy to spot."""
+        names = text(self.hass, "days").split(",")
+        self.hass.async_create_task(
+            self._notify(
+                text(self.hass, "learned_title"),
+                text(
+                    self.hass,
+                    "learned_body",
+                    day=names[day.weekday()],
+                    time=f"{minutes // 60:02d}:{minutes % 60:02d}",
+                ),
+            )
+        )
+
+    def day_config(self, day: date) -> ScheduleConfig:
+        """The config for one day before anything is learned: its group's days and time."""
+        cfg = self.config
+        if cfg.alt_ready_by and WEEKDAYS[day.weekday()] in cfg.alt_weekdays:
+            days = tuple(dict.fromkeys((*cfg.weekdays, *cfg.alt_weekdays)))
+            return replace(cfg, ready_by=cfg.alt_ready_by, weekdays=days)
+        return cfg
+
     def config_for(self, day: date) -> ScheduleConfig:
         """The config for one day: the ready-by time is the learned one when there is one."""
-        cfg = self.config
+        cfg = self.day_config(day)
         learner = self.coordinator.learner
         if not learner.config.enabled:
             return cfg
         learned = learner.learned_minutes(self.leg, day.weekday(), day)
         if learned is None:
+            if cfg.alt_learned_only and self._in_alt_group(day):
+                # Nothing learned for this kind of day, so it is not a day you usually leave.
+                days = tuple(d for d in cfg.weekdays if d != WEEKDAYS[day.weekday()])
+                return replace(cfg, weekdays=days)
             return cfg
         fixed = cfg.ready_by.hour * 60 + cfg.ready_by.minute
         minutes = min(max(learned, fixed - MAX_SHIFT), fixed + MAX_SHIFT)
@@ -363,7 +437,7 @@ class ScheduleManager:
         tomorrow = dt_util.as_local(now).date() + timedelta(days=1)
         cfg = self.config_for(tomorrow)
         if (
-            cfg.ready_by == self.config.ready_by
+            cfg.ready_by == self.day_config(tomorrow).ready_by
             or WEEKDAYS[tomorrow.weekday()] not in cfg.weekdays
             or self.paused_on(tomorrow)
         ):

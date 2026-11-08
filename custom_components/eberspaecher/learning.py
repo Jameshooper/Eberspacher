@@ -22,6 +22,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_LEARN_ALTERNATE,
     CONF_LEARN_ENABLED,
     CONF_LEARN_ENTITY,
     CONF_LEARN_MARGIN,
@@ -41,6 +42,7 @@ SAVE_DELAY = 30  # seconds
 KEEP_DAYS = 120  # samples kept
 LOOKBACK_DAYS = 56  # samples used
 MIN_SAMPLES = 3  # same weekdays needed before the learned time is trusted
+LEARNED_CHANGE = 5  # minutes a learned time must move to be worth a message
 MAX_SHIFT = 120  # minutes the learned time may differ from the fixed one
 # Hours of the day in which a first connection counts as leaving home / leaving work.
 WINDOWS = {LEG_HOME: (4, 12), LEG_WORK: (13, 23)}
@@ -62,6 +64,7 @@ class LearnConfig:
     state: str = DEFAULT_LEARN_STATE
     tracker: str | None = None
     margin: int = DEFAULT_LEARN_MARGIN
+    alternate: bool = False
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> LearnConfig:
@@ -75,7 +78,13 @@ class LearnConfig:
             state=str(options.get(CONF_LEARN_STATE) or DEFAULT_LEARN_STATE),
             tracker=options.get(CONF_LEARN_TRACKER) or None,
             margin=max(0, margin),
+            alternate=bool(options.get(CONF_LEARN_ALTERNATE, False)),
         )
+
+
+def week_parity(day: date) -> int:
+    """0 or 1, switching every Monday, so odd and even weeks can be told apart."""
+    return ((day.toordinal() - 1) // 7) % 2
 
 
 def classify(
@@ -193,6 +202,8 @@ class DepartureLearner:
         self._unsub: Callable[[], None] | None = None
         self._last_home: datetime | None = None  # when the phone was last seen at home
         self._listeners: list[Callable[[], None]] = []
+        # Told when a new or changed time has been learned: (leg, day it applies to, minutes).
+        self.on_learned: Callable[[str, date, int], None] | None = None
 
     async def async_load(self) -> None:
         stored = await self._store.async_load() or {}
@@ -310,9 +321,19 @@ class DepartureLearner:
         day = local.date().isoformat()
         if day in self._samples[kind]:
             return
+        # The next time this weekday comes round (two weeks on when weeks alternate).
+        target = local.date() + timedelta(days=14 if self.config.alternate else 7)
+        before = self.learned_minutes(kind, local.weekday(), target)
         self._samples[kind][day] = local.hour * 60 + local.minute
+        after = self.learned_minutes(kind, local.weekday(), target)
         self._save()
         self._notify_listeners()
+        if (
+            after is not None
+            and (before is None or abs(after - before) >= LEARNED_CHANGE)
+            and self.on_learned is not None
+        ):
+            self.on_learned(kind, target, after)
 
     # --- history -----------------------------------------------------------
 
@@ -385,11 +406,14 @@ class DepartureLearner:
         """
         today = today or dt_util.now().date()
         cutoff = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
+        alternate = self.config.alternate
         return sorted(
             minutes
             for day, minutes in self._samples[kind].items()
             if cutoff <= day < today.isoformat()
             and date.fromisoformat(day).weekday() == weekday
+            # With alternating weeks only the same kind of week counts.
+            and (not alternate or week_parity(date.fromisoformat(day)) == week_parity(today))
         )
 
     def learned_minutes(self, kind: str, weekday: int, today: date | None = None) -> int | None:

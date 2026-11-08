@@ -21,6 +21,11 @@ from homeassistant.util import dt as dt_util
 from . import EberspaecherConfigEntry
 from .api import EberspaecherError
 from .const import (
+    CONF_ALT_ENABLED,
+    CONF_ALT_READY_BY,
+    CONF_LEARN_ENABLED,
+    CONF_LEARN_ENTITY,
+    CONF_LEARN_TRACKER,
     CONF_SCHEDULE_ENABLED,
     DOMAIN,
     MODE_HEATING,
@@ -31,7 +36,7 @@ from .const import (
 )
 from .coordinator import EberspaecherCoordinator
 from .entity import EberspaecherEntity
-from .schedule import start_times
+from .schedule import ScheduleConfig, longest_runtime_fits, start_times
 
 SERVICE_START = "start_heating"
 PENDING_TIMEOUT = 90  # seconds to show the requested state while waiting for the cloud
@@ -55,6 +60,8 @@ async def async_setup_entry(
     first = coordinator.primary_imei
     if first is not None:
         entities.append(EberspaecherScheduleSwitch(coordinator, entry, first))
+        entities.append(EberspaecherLearnSwitch(coordinator, entry, first))
+        entities.append(EberspaecherAltDaysSwitch(coordinator, entry, first))
     async_add_entities(entities)
 
     async_get_current_platform().async_register_entity_service(
@@ -258,12 +265,16 @@ class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
         today = dt_util.now().date()
         scheduler = self.coordinator.scheduler
         cfg = scheduler.config_for(today)
+        nxt = scheduler.next_plan()
         work = self.coordinator.work_scheduler
         work_cfg = work.config_for(today)
         return {
             "ready_by": cfg.ready_by.strftime("%H:%M"),
             "weekdays": list(cfg.weekdays),
             "start_times": [t.strftime("%H:%M") for t in start_times(cfg)],
+            "next_day": nxt[0].isoformat() if nxt else None,
+            "next_ready_by": nxt[1].strftime("%H:%M") if nxt else None,
+            "next_learned": nxt[2] if nxt else None,
             "last_result": scheduler.last_result,
             "work_ready_by": work_cfg.ready_by.strftime("%H:%M") if work_cfg.enabled else None,
             "work_weekdays": list(work_cfg.weekdays) if work_cfg.enabled else None,
@@ -285,3 +296,85 @@ class EberspaecherScheduleSwitch(EberspaecherEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._async_set(False)
+
+
+class EberspaecherLearnSwitch(EberspaecherEntity, SwitchEntity):
+    """Turns learning the ready-by times on or off (kept in the integration options)."""
+
+    _attr_translation_key = "learn"
+    _attr_icon = "mdi:school-outline"
+
+    def __init__(
+        self, coordinator: EberspaecherCoordinator, entry: ConfigEntry, imei: str
+    ) -> None:
+        super().__init__(coordinator, imei, None, "learn")
+        self._entry = entry
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.learner.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.learner.config.enabled
+
+    async def _async_set(self, enabled: bool) -> None:
+        options = self._entry.options
+        if enabled and not (options.get(CONF_LEARN_ENTITY) and options.get(CONF_LEARN_TRACKER)):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="learn_needs_signal"
+            )
+        self.hass.config_entries.async_update_entry(
+            self._entry, options={**options, CONF_LEARN_ENABLED: enabled}
+        )
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._async_set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._async_set(False)
+
+
+class EberspaecherAltDaysSwitch(EberspaecherEntity, SwitchEntity):
+    """Turns the second group of days (for example the weekend) on or off.
+
+    Off keeps the time that was set, so turning it on again brings it back.
+    """
+
+    _attr_translation_key = "alt_enabled"
+    _attr_icon = "mdi:calendar-weekend"
+
+    def __init__(
+        self, coordinator: EberspaecherCoordinator, entry: ConfigEntry, imei: str
+    ) -> None:
+        super().__init__(coordinator, imei, None, "alt_enabled")
+        self._entry = entry
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.scheduler.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.scheduler.config.alt_ready_by is not None
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        options = {**self._entry.options, CONF_ALT_ENABLED: True}
+        if not options.get(CONF_ALT_READY_BY):
+            # No time kept yet: start from the first group's time.
+            ready = self.coordinator.scheduler.config.ready_by
+            options[CONF_ALT_READY_BY] = ready.strftime("%H:%M:%S")
+        if not longest_runtime_fits(ScheduleConfig.from_options(options)):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="runtime_too_long"
+            )
+        self.hass.config_entries.async_update_entry(self._entry, options=options)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.hass.config_entries.async_update_entry(
+            self._entry, options={**self._entry.options, CONF_ALT_ENABLED: False}
+        )

@@ -75,11 +75,15 @@
           "ready_by": "Bilen klar till",
           "weekdays": "Dagar",
           "temperature_entity": "Utomhustemperatursensor",
-          "notify_service": "Aviseringstjänst"
+          "notify_service": "Aviseringstjänst",
+          "alt_ready_by": "Bilen klar kl (andra dagar, valfritt)",
+          "alt_weekdays": "Dagar för den andra tiden",
+          "alt_learned_only": "Bara dagar som lärts in (andra dagarna)"
         },
         "data_description": {
           "temperature_entity": "Valfritt. En sensor med utomhustemperaturen i °C.",
-          "notify_service": "Valfritt. Till exempel notify.mobile_app_din_telefon. Skickar ett meddelande när värmaren startar, inte kan startas eller inte behövs."
+          "notify_service": "Valfritt. Till exempel notify.mobile_app_din_telefon. Skickar ett meddelande när värmaren startar, inte kan startas eller inte behövs.",
+          "alt_learned_only": "Hoppar över en dag i den andra gruppen när ingen tid har lärts in för den. Använd med växlande veckor så att det bara värmer de veckor du verkligen åker."
         }
       },
       "heating_bands": {
@@ -136,13 +140,15 @@
           "learn_entity": "Avfärdssensor",
           "learn_state": "Tillstånd som betyder att du satt dig i bilen",
           "learn_tracker": "Telefonens plats",
-          "learn_margin": "Klar så här mycket tidigare"
+          "learn_margin": "Klar så här mycket tidigare",
+          "learn_alternate": "Lär in jämna och udda veckor var för sig"
         },
         "data_description": {
           "learn_entity": "Till exempel iPhones sensor Ljudutgång.",
           "learn_state": "Till exempel CarPlay.",
           "learn_tracker": "Telefonens enhetsspårare eller person.",
-          "learn_margin": "Minuter före den vanliga avfärden."
+          "learn_margin": "Minuter före den vanliga avfärden.",
+          "learn_alternate": "Håller varannan vecka isär (till exempel helgerna du kör någon till jobbet). Behöver ungefär 6 veckor innan det litar på något mönster."
         }
       },
       "hud": {
@@ -217,6 +223,12 @@
       },
       "schedule": {
         "name": "Schema"
+      },
+      "learn": {
+        "name": "Lär in tider"
+      },
+      "alt_enabled": {
+        "name": "Andra dagarna på"
       }
     },
     "number": {
@@ -261,6 +273,14 @@
       "ready_once": {
         "name": "Klar till (engångs)"
       }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Klar kl (första dagarna)"
+      },
+      "alt_ready_by": {
+        "name": "Klar kl (andra dagarna)"
+      }
     }
   },
   "exceptions": {
@@ -275,6 +295,12 @@
     },
     "mode_unsupported": {
       "message": "Den här värmaren stöder inte {mode}"
+    },
+    "learn_needs_signal": {
+      "message": "Slå på inlärning i inställningarna först: den behöver en signal för att sätta sig i bilen och telefonens plats"
+    },
+    "runtime_too_long": {
+      "message": "Den längsta körtiden ryms inte före den tiden"
     }
   }
 }

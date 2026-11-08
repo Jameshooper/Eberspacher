@@ -59,7 +59,7 @@ async def test_setup_creates_entities(hass, entry, cloud):
 async def test_unique_ids_are_stable_and_unique(hass, entry, cloud):
     await setup(hass, entry)
     ids = [e.unique_id for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)]
-    assert len(ids) == len(set(ids)) == 14
+    assert len(ids) == len(set(ids)) == 18
 
 
 async def test_auth_failure_at_setup_starts_reauth(hass, entry, aioclient_mock):
@@ -85,7 +85,7 @@ async def test_malformed_heater_address_is_skipped(hass, entry, aioclient_mock, 
     assert entry.state is ConfigEntryState.LOADED
     assert hass.states.get(SWITCH) is not None  # heater 2
     # heater 2's heating and ventilation switches plus the schedule
-    assert len(hass.states.async_entity_ids("switch")) == 3
+    assert len(hass.states.async_entity_ids("switch")) == 5
     assert "unusable address" in caplog.text
     assert IMEI not in caplog.text  # only the last digits are logged
 

@@ -10,7 +10,7 @@ const TEXT = {
     left: "MIN LEFT", runfor: "RUN FOR", min: "min", car: "CAR", live: "LIVE", justnow: "JUST NOW",
     ago: "AGO", h: "H", m: "MIN", ask: "ASK CAR FOR TEMPERATURE", asked: "ASKED · WAIT A MOMENT",
     schedule: "Schedule on", starts: "STARTS", ready: "READY BY", readyonce: "BE READY BY (ONE-OFF)",
-    cancel: "CANCEL", lastheated: "LAST HEATED", paused: "PAUSED UNTIL", ev: "EV", fuel: "FUEL",
+    cancel: "CANCEL", next: "Next", learnedword: "learned", learn: "Learn my times", off: "Off", pick: "Tap to choose a time", lastheated: "LAST HEATED", paused: "PAUSED UNTIL", ev: "EV", fuel: "FUEL",
     evrange: "EV RANGE", fuelrange: "PETROL RANGE", odo: "ODO", v12: "12 V", none: "NONE",
     failed: "Could not do that: ", never: "NEVER", lastev: "EV · LAST",
   },
@@ -20,7 +20,7 @@ const TEXT = {
     left: "MIN ÜBRIG", runfor: "LAUFZEIT", min: "Min", car: "AUTO", live: "LIVE", justnow: "GERADE EBEN",
     ago: "HER", h: "STD", m: "MIN", ask: "TEMPERATUR VOM AUTO ABFRAGEN", asked: "ANGEFRAGT · KURZ WARTEN",
     schedule: "Zeitplan an", starts: "STARTET", ready: "BEREIT UM", readyonce: "EINMALIG BEREIT UM",
-    cancel: "ABBRECHEN", lastheated: "ZULETZT GEHEIZT", paused: "PAUSIERT BIS", ev: "EV", fuel: "TANK",
+    cancel: "ABBRECHEN", next: "Nächste", learnedword: "gelernt", learn: "Zeiten lernen", off: "Aus", pick: "Zeit wählen", lastheated: "ZULETZT GEHEIZT", paused: "PAUSIERT BIS", ev: "EV", fuel: "TANK",
     evrange: "EV-REICHWEITE", fuelrange: "BENZIN-REICHWEITE", odo: "KM-STAND", v12: "12 V", none: "KEINE",
     failed: "Das hat nicht geklappt: ", never: "NIE", lastev: "EV · ZULETZT",
   },
@@ -30,7 +30,7 @@ const TEXT = {
     left: "MIN KVAR", runfor: "KÖRTID", min: "min", car: "BIL", live: "LIVE", justnow: "NYSS",
     ago: "SEDAN", h: "T", m: "MIN", ask: "FRÅGA BILEN OM TEMPERATUR", asked: "FRÅGAD · VÄNTA LITE",
     schedule: "Schema på", starts: "STARTAR", ready: "KLAR KL", readyonce: "KLAR KL (ENGÅNG)",
-    cancel: "AVBRYT", lastheated: "SENAST VÄRMD", paused: "PAUSAD TILL", ev: "EL", fuel: "BRÄNSLE",
+    cancel: "AVBRYT", next: "Nästa", learnedword: "inlärd", learn: "Lär in mina tider", off: "Av", pick: "Välj tid", lastheated: "SENAST VÄRMD", paused: "PAUSAD TILL", ev: "EL", fuel: "BRÄNSLE",
     evrange: "ELRÄCKVIDD", fuelrange: "BENSINRÄCKVIDD", odo: "MÄTARE", v12: "12 V", none: "INGA",
     failed: "Det gick inte: ", never: "ALDRIG", lastev: "EL · SENAST",
   },
@@ -40,7 +40,7 @@ const TEXT = {
     left: "MIN JÄLJELLÄ", runfor: "KESTO", min: "min", car: "AUTO", live: "REAALIAIKA", justnow: "JUURI NYT",
     ago: "SITTEN", h: "T", m: "MIN", ask: "KYSY AUTON LÄMPÖTILAA", asked: "KYSYTTY · ODOTA HETKI",
     schedule: "Aikataulu päällä", starts: "KÄYNNISTYY", ready: "VALMIS KLO", readyonce: "VALMIS KLO (KERRAN)",
-    cancel: "PERUUTA", lastheated: "VIIMEKSI LÄMMITETTY", paused: "TAUOLLA ASTI", ev: "SÄHKÖ", fuel: "POLTTOAINE",
+    cancel: "PERUUTA", next: "Seuraava", learnedword: "opittu", learn: "Opi aikani", off: "Pois", pick: "Valitse aika", lastheated: "VIIMEKSI LÄMMITETTY", paused: "TAUOLLA ASTI", ev: "SÄHKÖ", fuel: "POLTTOAINE",
     evrange: "SÄHKÖKANTAMA", fuelrange: "BENSIINIKANTAMA", odo: "MATKAMITTARI", v12: "12 V", none: "EI MITÄÄN",
     failed: "Se ei onnistunut: ", never: "EI KOSKAAN", lastev: "SÄHKÖ · VIIMEKSI",
   },
@@ -134,6 +134,18 @@ const STYLE = `
   input[type=range] { width: 100%; margin-top: 10px; accent-color: var(--cyan); height: 28px; }
   input[type=datetime-local] { display: block; width: 100%; max-width: 100%; min-width: 0; -webkit-appearance: none; appearance: none; text-align: left; margin-top: 8px;
     padding: 10px 12px; border-radius: 10px; font: inherit; font-size: 15px; color: #eaf3ff; background: rgba(10,22,52,.85); border: 1px solid rgba(57,213,255,.4); color-scheme: dark; }
+  .kv { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(79,195,255,.15); }
+  .kv:first-of-type { border-top: 0; }
+  .kv .k { font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; flex: none; }
+  .kv .v { font-size: 17px; text-align: right; }
+  .pair { display: flex; align-items: center; gap: 12px; }
+  .pair.off input { opacity: .35; }
+  input[type=time] { -webkit-appearance: none; appearance: none; font: inherit; font-size: 17px; color: #eaf3ff; text-align: center; min-width: 110px; padding: 8px 10px; border-radius: 10px;
+    background: rgba(10,22,52,.85); border: 1px solid rgba(57,213,255,.4); color-scheme: dark; }
+  .pickwrap { position: relative; margin-top: 8px; }
+  .pickwrap .ph { position: absolute; left: 13px; top: 0; bottom: 0; display: flex; align-items: center; font-size: 15px; color: #8fc8ff; pointer-events: none; }
+  .pickwrap:not(.empty) .ph { display: none; }
+  .pickwrap.empty input { color: transparent; }
   .toggle { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 14px; }
   .sw { width: 52px; height: 30px; border-radius: 15px; background: rgba(57,213,255,.18); border: 1px solid rgba(57,213,255,.4); position: relative; cursor: pointer; transition: background .3s; flex: none; }
   .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #5a7099; transition: all .3s; }
@@ -190,11 +202,21 @@ const HTML = `
 
   <div class="panel" id="plan">
     <div class="toggle" style="margin-top:0"><span id="schedLabel"></span><div class="sw" id="sched"></div></div>
-    <div class="note" id="schedNote"></div>
-    <div class="setting"><div class="label" id="onceLabel"></div><input type="datetime-local" id="once"></div>
+    <div id="schedInfo" style="margin-top:8px">
+      <div class="kv" id="rbRow"><span class="k" id="rbK"></span><input type="time" id="rb"></div>
+      <div class="kv" id="altRow"><span class="k" id="altK"></span><span class="pair"><div class="sw" id="altOn"></div><input type="time" id="alt"></span></div>
+    </div>
+    <div class="note" id="nextNote" style="margin:2px 0 4px"></div>
+    <div class="toggle" id="learnRow" style="border-top:1px solid rgba(79,195,255,.15);padding:14px 0 12px;margin-top:0"><span id="learnLabel"></span><div class="sw" id="learn"></div></div>
+    <div class="setting" style="border-top:1px solid rgba(79,195,255,.15);padding-top:14px"><div class="label" id="onceLabel"></div>
+      <div class="pickwrap empty" id="pickwrap"><input type="datetime-local" id="once"><span class="ph" id="ph"></span></div></div>
     <div class="note" id="onceNote"></div>
+    <div class="note" id="onceNext"></div>
     <button class="small hidden" id="cancelOnce"></button>
-    <div class="note" id="heatedNote" style="margin-top:14px"></div>
+    <div id="infoRows" style="margin-top:10px">
+      <div class="kv" id="heatedRow"><span class="k" id="heatedK"></span><span class="v" id="heatedV"></span></div>
+      <div class="kv" id="pausedRow"><span class="k" id="pausedK"></span><span class="v" id="pausedV"></span></div>
+    </div>
   </div>
 </div></div>
 <div class="toast" id="toast"></div>
@@ -248,6 +270,34 @@ class EberspaecherHud extends HTMLElement {
   set route(_) { }
 
   get _t() { return TEXT[(this._hass && this._hass.language || "en").slice(0, 2)] || TEXT.en; }
+  // "Mon–Fri", "Sat–Sun", "Mon, Wed" from a list like ["mon","tue","wed"].
+  _days(list) {
+    const order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+    const idx = (list || []).map(d => order.indexOf(d)).filter(i => i >= 0).sort((a, b) => a - b);
+    const lang = (this._hass && this._hass.language) || "en";
+    const name = i => new Date(2024, 0, 1 + i).toLocaleDateString(lang, { weekday: "short" });
+    const parts = [];
+    for (let i = 0; i < idx.length;) {
+      let j = i;
+      while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j++;
+      parts.push(j - i >= 2 ? `${name(idx[i])}–${name(idx[j])}` : idx.slice(i, j + 1).map(name).join(", "));
+      i = j + 1;
+    }
+    return parts.join(", ") || this._t.off;
+  }
+  // "Sat 7 Nov", or "Today" / "Tomorrow" in words, for a date and optional time.
+  _when(date) {
+    const lang = (this._hass && this._hass.language) || "en";
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.round((day - today) / 864e5);
+    if (diff === 0 || diff === 1) {
+      const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+      const w = rtf.format(diff, "day");
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }
+    return date.toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short" });
+  }
   _id(name) { return (this._cfg.entities || {})[name]; }
   _car(name) { return (this._cfg.car || {})[name]; }
   _s(id) { return id && this._hass ? this._hass.states[id] : undefined; }
@@ -273,7 +323,26 @@ class EberspaecherHud extends HTMLElement {
       this._busyUntil = Date.now() + 4000;
       call("switch", on ? "turn_on" : "turn_off", { entity_id: this._id("schedule") });
     };
+    const setTime = (key, el) => { el.onchange = e => {
+      if (!e.target.value) return;
+      this._busyUntil = Date.now() + 4000;
+      call("time", "set_value", { entity_id: this._id(key), time: e.target.value + ":00" });
+    }; };
+    setTime("ready_by", this.$("rb")); setTime("alt_ready_by", this.$("alt"));
+    this.$("altOn").onclick = e => {
+      const on = !e.currentTarget.classList.contains("on");
+      e.currentTarget.classList.toggle("on", on);
+      this._busyUntil = Date.now() + 4000;
+      call("switch", on ? "turn_on" : "turn_off", { entity_id: this._id("alt_on") });
+    };
+    this.$("learn").onclick = e => {
+      const on = !e.currentTarget.classList.contains("on");
+      e.currentTarget.classList.toggle("on", on);
+      this._busyUntil = Date.now() + 4000;
+      call("switch", on ? "turn_on" : "turn_off", { entity_id: this._id("learn") });
+    };
     this.$("once").onchange = e => {
+      this.$("pickwrap").classList.toggle("empty", !e.target.value);
       if (!e.target.value) return;
       this._busyUntil = Date.now() + 4000;
       call("datetime", "set_value", { entity_id: this._id("ready_once"), datetime: e.target.value.replace("T", " ") + ":00" });
@@ -392,22 +461,38 @@ class EberspaecherHud extends HTMLElement {
     this.$("schedLabel").textContent = t.schedule;
     show("sched", !!sched);
     const a = (sched && sched.attributes) || {};
-    const times = (a.start_times || []).join(" · ") || t.none;
-    this.$("schedNote").textContent = sched ? `${t.ready} ${a.ready_by || "–"} · ${t.starts} ${times}` : "";
+    const rb = this._own("ready_by"), alt = this._own("alt_ready_by");
+    show("schedInfo", !!sched);
+    show("rbRow", !!rb); show("altRow", !!alt);
+    const altOn = this._own("alt_on");
+    show("altOn", !!altOn);
+    this.$("rbK").textContent = rb ? this._days(rb.attributes.weekdays) : "";
+    this.$("altK").textContent = alt ? this._days(alt.attributes.weekdays) : "";
+    const nd = sched && sched.attributes && sched.attributes.next_day, nr = sched && sched.attributes && sched.attributes.next_ready_by;
+    this.$("nextNote").textContent = nd && nr && sched.state === "on"
+      ? `${t.next}: ${this._when(new Date(nd + "T12:00:00"))} · ${t.ready.toLowerCase()} ${nr}${sched.attributes.next_learned ? " (" + t.learnedword + ")" : ""}` : "";
+    const learn = this._own("learn");
+    show("learnRow", !!learn);
+    this.$("learnLabel").textContent = t.learn;
     this.$("onceLabel").textContent = t.readyonce;
-    show("once", !!once);
+    show("pickwrap", !!once);
     const oa = (once && once.attributes) || {};
     const hasOnce = !!once && !["unknown", "unavailable"].includes(once.state);
-    this.$("onceNote").textContent = hasOnce
-      ? `${t.starts} ${(oa.start_times || []).join(" · ") || t.none}` : (oa.last_result || "");
+    this.$("onceNote").textContent = hasOnce ? "" : (oa.last_result || "");
+    const od = hasOnce ? new Date(once.state) : null;
+    this.$("onceNext").textContent = od && !isNaN(od)
+      ? `${t.next}: ${this._when(od)} · ${t.ready.toLowerCase()} ${od.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}` : "";
     show("cancelOnce", hasOnce && !!this._id("cancel_ready_once"));
     this.$("cancelOnce").textContent = t.cancel;
     const heated = this._own("last_heated");
     const pause = this._own("pause_until");
-    const bits = [];
-    if (heated) bits.push(`${t.lastheated}: ${heated.state && !["unknown", "unavailable"].includes(heated.state) ? this._ago(heated.state).text : t.never}`);
-    if (pause && !["unknown", "unavailable"].includes(pause.state)) bits.push(`${t.paused} ${pause.state}`);
-    this.$("heatedNote").textContent = bits.join(" · ");
+    const okState = e => !!e && e.state && !["unknown", "unavailable"].includes(e.state);
+    show("heatedRow", !!heated); show("pausedRow", okState(pause));
+    this.$("heatedK").textContent = t.lastheated;
+    this.$("heatedV").textContent = okState(heated) ? this._ago(heated.state).text : t.never;
+    this.$("pausedK").textContent = t.paused;
+    this.$("pausedV").textContent = okState(pause) ? pause.state : "";
+    this.$("ph").textContent = t.pick;
 
     // Do not move a control while it is being used.
     if (Date.now() > this._busyUntil) {
@@ -417,7 +502,13 @@ class EberspaecherHud extends HTMLElement {
         r.value = parseFloat(run.state); this.$("minsVal").textContent = Math.round(parseFloat(run.state));
       }
       this.$("sched").classList.toggle("on", !!sched && sched.state === "on");
+      this.$("learn").classList.toggle("on", !!learn && learn.state === "on");
+      const tv = e => (e && /^\d\d:\d\d/.test(e.state)) ? e.state.slice(0, 5) : "";
+      this.$("rb").value = tv(rb); this.$("alt").value = tv(alt);
+      this.$("altOn").classList.toggle("on", !!altOn && altOn.state === "on");
+      this.$("alt").parentNode.classList.toggle("off", !!altOn && altOn.state !== "on");
       this.$("once").value = hasOnce ? this._local(once.state) : "";
+      this.$("pickwrap").classList.toggle("empty", !this.$("once").value);
     }
   }
 }

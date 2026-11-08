@@ -75,11 +75,15 @@
           "ready_by": "Car ready by",
           "weekdays": "Days",
           "temperature_entity": "Outside temperature sensor",
-          "notify_service": "Notification service"
+          "notify_service": "Notification service",
+          "alt_ready_by": "Car ready by (second group of days, optional)",
+          "alt_weekdays": "Days for the second time",
+          "alt_learned_only": "Only on days that were learned (second days)"
         },
         "data_description": {
           "temperature_entity": "Optional. A sensor with the outside temperature in °C.",
-          "notify_service": "Optional. For example notify.mobile_app_your_phone. Gets a message when the heater starts, fails to start, or is not needed."
+          "notify_service": "Optional. For example notify.mobile_app_your_phone. Gets a message when the heater starts, fails to start, or is not needed.",
+          "alt_learned_only": "Skip a day of the second group when no time has been learned for it. Use this with alternating weeks so it only heats on the weeks you really leave."
         }
       },
       "heating_bands": {
@@ -136,13 +140,15 @@
           "learn_entity": "Departure sensor",
           "learn_state": "State that means you got in",
           "learn_tracker": "Phone location",
-          "learn_margin": "Ready this much earlier"
+          "learn_margin": "Ready this much earlier",
+          "learn_alternate": "Learn odd and even weeks apart"
         },
         "data_description": {
           "learn_entity": "For example the iPhone's Audio Output sensor.",
           "learn_state": "For example CarPlay.",
           "learn_tracker": "The phone's device tracker or person.",
-          "learn_margin": "Minutes before the usual departure."
+          "learn_margin": "Minutes before the usual departure.",
+          "learn_alternate": "Keeps every other week apart (for example the weekends you drive someone to work). Needs about 6 weeks before it trusts either pattern."
         }
       },
       "hud": {
@@ -217,6 +223,12 @@
       },
       "schedule": {
         "name": "Schedule"
+      },
+      "learn": {
+        "name": "Learn times"
+      },
+      "alt_enabled": {
+        "name": "Second days on"
       }
     },
     "number": {
@@ -261,6 +273,14 @@
       "ready_once": {
         "name": "Ready by (one-off)"
       }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Ready by (first days)"
+      },
+      "alt_ready_by": {
+        "name": "Ready by (second days)"
+      }
     }
   },
   "exceptions": {
@@ -275,6 +295,12 @@
     },
     "mode_unsupported": {
       "message": "This heater does not support {mode}"
+    },
+    "learn_needs_signal": {
+      "message": "Turn on learning in the options first: it needs a signal for getting in the car and your phone's location"
+    },
+    "runtime_too_long": {
+      "message": "The longest run time does not fit before that time"
     }
   }
 }

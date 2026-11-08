@@ -41,6 +41,9 @@ Per device (found automatically) and per heater:
 | `switch` Heating | On starts the heater for the **Run time**; off stops it |
 | `switch` Ventilation | Same, but runs ventilation (fan only). Only created if the heater lists ventilation |
 | `switch` Schedule | Turns the automatic start schedule on or off (once per device). Its attributes show today's ready-by and start times (the learned ones when there are any) and the last result, also for leaving work |
+| `switch` Learn times | Turns learning the departure times on or off. It only turns on once a signal and your phone's location are set under Configure → Learn departure times |
+| `switch` Second days on | Turns the second group of days (for example the weekend) on or off, keeping its time |
+| `time` Ready by (first days) / (second days) | The time the car should be ready for each group of days (for example Mon–Fri and Sat–Sun). The second one is empty until you set it |
 | `number` Run time | Minutes the switch runs the heater (the heater's own min/max apply, 10–120 on the unit this was built on). Remembered across restarts |
 | `date` Pause until | The schedules do nothing up to and including this day, for example while the car is not used. Remembered across restarts (once per device) |
 | `sensor` Remaining run time | Minutes left in the current run |
@@ -97,6 +100,8 @@ the ready-by time, the outside temperature sensor and the notification service (
 `notify.mobile_app_your_phone`). **Heating bands** holds the temperatures and run times, and **Summer ventilation** the hot-weather rule.
 Settings that contradict each other are refused with a message, for example a Cold
 temperature above No heating above.
+
+A second group of days can have its own ready-by time (for example Saturday and Sunday at 10:00): set it in the Schedule options or with the second **Ready by** time. Leave it empty and those days stay off. The **Second days on** switch turns them off and on again without losing the time.
 
 Defaults, ready by 08:10 on Monday to Friday:
 
@@ -166,6 +171,12 @@ integration deletes what it learned.
 
 With a phone location set, the morning schedule also does nothing on a day your phone is not at
 home when a start is due.
+
+**Alternating weeks.** Turn on **Learn odd and even weeks apart** if some weekends differ from the next (for example you drive someone to work every other Saturday). The two kinds of week are then learned separately, and it needs about 6 weeks before it trusts either pattern. Under Schedule, **Only on days that were learned** makes the second group of days (the weekend) skip any day with no learned time, so it heats only on the weekends you really leave. Learning keeps going while the heater skips a day, because it listens for you getting in the car.
+
+**Messages.** When a new departure time is learned, or one moves by 5 minutes or more, you get a notification (to the schedule's notification service) saying which day and the new ready-by time.
+
+The panel shows a **Next** line under the schedule and under the one-off time: the next day it can start and its ready-by time, marked "learned" when the learned time is used. The schedule switch has the same in its attributes (`next_day`, `next_ready_by`, `next_learned`).
 
 ### Leaving work
 

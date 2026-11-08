@@ -118,7 +118,7 @@ def test_the_page_calls_only_its_own_kind_of_service():
     """The page may press, switch, set a number and set a date and time, nothing else."""
     calls = re.findall(r'call\("(\w+)", (.+?), \{', SCRIPT)
     assert calls
-    assert {d for d, _ in calls} <= {"switch", "number", "button", "datetime"}
+    assert {d for d, _ in calls} <= {"switch", "number", "button", "datetime", "time"}
     services = {s for _, expr in calls for s in re.findall(r'"(\w+)"', expr)}
     assert services <= {"turn_on", "turn_off", "set_value", "press"}
     assert SCRIPT.count("callService(") == 1  # one place, so every call goes the same way

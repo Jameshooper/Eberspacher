@@ -20,6 +20,7 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SENSOR,
     Platform.BUTTON,
+    Platform.TIME,
 ]
 
 EberspaecherConfigEntry = ConfigEntry[EberspaecherCoordinator]

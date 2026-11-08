@@ -48,6 +48,11 @@ from .const import (
     CONF_HUD_FUEL_RANGE,
     CONF_HUD_ODOMETER,
     CONF_IDLE_INTERVAL,
+    CONF_ALT_ENABLED,
+    CONF_ALT_LEARNED_ONLY,
+    CONF_ALT_READY_BY,
+    CONF_ALT_WEEKDAYS,
+    CONF_LEARN_ALTERNATE,
     CONF_LEARN_ENABLED,
     CONF_LEARN_ENTITY,
     CONF_LEARN_MARGIN,
@@ -264,7 +269,13 @@ class EberspaecherOptionsFlow(OptionsFlow):
             else:
                 # A cleared optional field is missing from the input; clear it too.
                 return self._save(
-                    **{CONF_TEMPERATURE_ENTITY: None, CONF_NOTIFY_SERVICE: None, **user_input}
+                    **{
+                        CONF_TEMPERATURE_ENTITY: None,
+                        CONF_NOTIFY_SERVICE: None,
+                        CONF_ALT_READY_BY: None,
+                        **user_input,
+                        CONF_ALT_ENABLED: True,
+                    }
                 )
 
         cfg = self._config(**(user_input or {}))
@@ -284,6 +295,25 @@ class EberspaecherOptionsFlow(OptionsFlow):
                         translation_key=CONF_WEEKDAYS,
                     )
                 ),
+                vol.Optional(
+                    CONF_ALT_READY_BY,
+                    description={
+                        "suggested_value": cfg.alt_ready_by.strftime("%H:%M:%S")
+                        if cfg.alt_ready_by
+                        else None
+                    },
+                ): TimeSelector(),
+                vol.Required(CONF_ALT_WEEKDAYS, default=list(cfg.alt_weekdays)): SelectSelector(
+                    SelectSelectorConfig(
+                        options=WEEKDAYS,
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_WEEKDAYS,
+                    )
+                ),
+                vol.Required(
+                    CONF_ALT_LEARNED_ONLY, default=cfg.alt_learned_only
+                ): BooleanSelector(),
                 vol.Optional(
                     CONF_TEMPERATURE_ENTITY,
                     description={"suggested_value": cfg.temperature_entity},
@@ -477,6 +507,7 @@ class EberspaecherOptionsFlow(OptionsFlow):
                         CONF_LEARN_MARGIN: int(
                             user_input.get(CONF_LEARN_MARGIN, DEFAULT_LEARN_MARGIN)
                         ),
+                        CONF_LEARN_ALTERNATE: bool(user_input.get(CONF_LEARN_ALTERNATE, False)),
                     }
                 )
 
@@ -484,6 +515,7 @@ class EberspaecherOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_LEARN_ENABLED, default=current.enabled): BooleanSelector(),
+                vol.Required(CONF_LEARN_ALTERNATE, default=current.alternate): BooleanSelector(),
                 vol.Optional(
                     CONF_LEARN_ENTITY, description={"suggested_value": current.entity}
                 ): EntitySelector(EntitySelectorConfig(domain=["sensor", "binary_sensor"])),

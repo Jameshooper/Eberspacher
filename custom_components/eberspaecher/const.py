@@ -47,6 +47,12 @@ FAILURES_BEFORE_ISSUE = 6
 CONF_SCHEDULE_ENABLED = "schedule_enabled"
 CONF_READY_BY = "ready_by"
 CONF_WEEKDAYS = "weekdays"
+# A second group of days with its own ready-by time (for example the weekend).
+CONF_ALT_READY_BY = "alt_ready_by"
+CONF_ALT_WEEKDAYS = "alt_weekdays"
+CONF_ALT_LEARNED_ONLY = "alt_learned_only"  # second days run only where a time was learned
+CONF_LEARN_ALTERNATE = "learn_alternate"  # odd and even weeks are learned apart
+CONF_ALT_ENABLED = "alt_enabled"  # off keeps the time but skips those days
 CONF_TEMPERATURE_ENTITY = "temperature_entity"
 CONF_NOTIFY_SERVICE = "notify_service"
 CONF_NO_HEAT_ABOVE = "no_heat_above"

@@ -75,11 +75,15 @@
           "ready_by": "Auto valmiina klo",
           "weekdays": "Päivät",
           "temperature_entity": "Ulkolämpötila-anturi",
-          "notify_service": "Ilmoituspalvelu"
+          "notify_service": "Ilmoituspalvelu",
+          "alt_ready_by": "Auto valmis klo (toiset päivät, valinnainen)",
+          "alt_weekdays": "Toisen ajan päivät",
+          "alt_learned_only": "Vain opituilla päivillä (toiset päivät)"
         },
         "data_description": {
           "temperature_entity": "Valinnainen. Anturi, joka antaa ulkolämpötilan °C-asteina.",
-          "notify_service": "Valinnainen. Esimerkiksi notify.mobile_app_puhelimesi. Lähettää viestin, kun lämmitin käynnistyy, ei käynnisty tai ei ole tarpeen."
+          "notify_service": "Valinnainen. Esimerkiksi notify.mobile_app_puhelimesi. Lähettää viestin, kun lämmitin käynnistyy, ei käynnisty tai ei ole tarpeen.",
+          "alt_learned_only": "Ohittaa toisen ryhmän päivän, jos sille ei ole opittu aikaa. Käytä vuorottelevien viikkojen kanssa, jotta lämmitys käynnistyy vain viikoilla, jolloin oikeasti lähdet."
         }
       },
       "heating_bands": {
@@ -136,13 +140,15 @@
           "learn_entity": "Lähtöanturi",
           "learn_state": "Tila, joka tarkoittaa autoon nousua",
           "learn_tracker": "Puhelimen sijainti",
-          "learn_margin": "Valmis näin paljon aiemmin"
+          "learn_margin": "Valmis näin paljon aiemmin",
+          "learn_alternate": "Opi parilliset ja parittomat viikot erikseen"
         },
         "data_description": {
           "learn_entity": "Esimerkiksi iPhonen Äänilähtö-anturi.",
           "learn_state": "Esimerkiksi CarPlay.",
           "learn_tracker": "Puhelimen laitteenseuranta tai henkilö.",
-          "learn_margin": "Minuutteja tavallista lähtöä ennen."
+          "learn_margin": "Minuutteja tavallista lähtöä ennen.",
+          "learn_alternate": "Pitää joka toisen viikon erillään (esimerkiksi viikonloput, jolloin viet jonkun töihin). Tarvitsee noin 6 viikkoa ennen kuin luottaa kumpaankaan kaavaan."
         }
       },
       "hud": {
@@ -217,6 +223,12 @@
       },
       "schedule": {
         "name": "Aikataulu"
+      },
+      "learn": {
+        "name": "Opi ajat"
+      },
+      "alt_enabled": {
+        "name": "Toiset päivät päällä"
       }
     },
     "number": {
@@ -261,6 +273,14 @@
       "ready_once": {
         "name": "Valmis klo (kertaluonteinen)"
       }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Valmis klo (ensimmäiset päivät)"
+      },
+      "alt_ready_by": {
+        "name": "Valmis klo (toiset päivät)"
+      }
     }
   },
   "exceptions": {
@@ -275,6 +295,12 @@
     },
     "mode_unsupported": {
       "message": "Tämä lämmitin ei tue tilaa {mode}"
+    },
+    "learn_needs_signal": {
+      "message": "Ota oppiminen ensin käyttöön asetuksissa: se tarvitsee signaalin autoon nousemisesta ja puhelimen sijainnin"
+    },
+    "runtime_too_long": {
+      "message": "Pisin käyntiaika ei mahdu ennen tuota aikaa"
     }
   }
 }
