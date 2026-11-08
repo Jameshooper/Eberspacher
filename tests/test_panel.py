@@ -162,3 +162,10 @@ def test_launcher_page_opens_the_panel_from_the_home_screen():
     assert "apple-mobile-web-app-capable" in page and "apple-touch-icon" in page
     for banned in ("fetch(", "XMLHttpRequest", "eval(", "localStorage", "WebSocket"):
         assert banned not in page
+
+
+def test_launcher_page_has_its_own_standalone_manifest():
+    page = (WWW / "app.html").read_text()
+    assert "/eberspaecher_static/app.webmanifest" in page
+    m = json.loads((WWW / "app.webmanifest").read_text())
+    assert m["display"] == "standalone" and m["start_url"] == "/eberspaecher_static/app.html"
