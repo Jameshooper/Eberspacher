@@ -10,7 +10,7 @@ const TEXT = {
     left: "MIN LEFT", runfor: "RUN FOR", min: "min", car: "CAR", live: "LIVE", justnow: "JUST NOW",
     ago: "AGO", h: "H", m: "MIN", ask: "ASK CAR FOR TEMPERATURE", asked: "ASKED · WAIT A MOMENT",
     schedule: "Schedule on", starts: "STARTS", ready: "READY BY", readyonce: "BE READY BY (ONE-OFF)",
-    cancel: "CANCEL", next: "Next", learnedword: "learned", learn: "Learn my times", off: "Off", pick: "Tap to choose a time", lastheated: "LAST HEATED", paused: "PAUSED UNTIL", ev: "EV", fuel: "FUEL",
+    cancel: "CANCEL", next: "Next", learnedword: "learned", learn: "Learn my times", off: "Off", nodays: "No days chosen", pick: "Tap to choose a time", lastheated: "LAST HEATED", paused: "PAUSED UNTIL", ev: "EV", fuel: "FUEL",
     evrange: "EV RANGE", fuelrange: "PETROL RANGE", odo: "ODO", v12: "12 V", none: "NONE",
     failed: "Could not do that: ", never: "NEVER", lastev: "EV · LAST",
   },
@@ -20,7 +20,7 @@ const TEXT = {
     left: "MIN ÜBRIG", runfor: "LAUFZEIT", min: "Min", car: "AUTO", live: "LIVE", justnow: "GERADE EBEN",
     ago: "HER", h: "STD", m: "MIN", ask: "TEMPERATUR VOM AUTO ABFRAGEN", asked: "ANGEFRAGT · KURZ WARTEN",
     schedule: "Zeitplan an", starts: "STARTET", ready: "BEREIT UM", readyonce: "EINMALIG BEREIT UM",
-    cancel: "ABBRECHEN", next: "Nächste", learnedword: "gelernt", learn: "Zeiten lernen", off: "Aus", pick: "Zeit wählen", lastheated: "ZULETZT GEHEIZT", paused: "PAUSIERT BIS", ev: "EV", fuel: "TANK",
+    cancel: "ABBRECHEN", next: "Nächste", learnedword: "gelernt", learn: "Zeiten lernen", off: "Aus", nodays: "Keine Tage gewählt", pick: "Zeit wählen", lastheated: "ZULETZT GEHEIZT", paused: "PAUSIERT BIS", ev: "EV", fuel: "TANK",
     evrange: "EV-REICHWEITE", fuelrange: "BENZIN-REICHWEITE", odo: "KM-STAND", v12: "12 V", none: "KEINE",
     failed: "Das hat nicht geklappt: ", never: "NIE", lastev: "EV · ZULETZT",
   },
@@ -30,7 +30,7 @@ const TEXT = {
     left: "MIN KVAR", runfor: "KÖRTID", min: "min", car: "BIL", live: "LIVE", justnow: "NYSS",
     ago: "SEDAN", h: "T", m: "MIN", ask: "FRÅGA BILEN OM TEMPERATUR", asked: "FRÅGAD · VÄNTA LITE",
     schedule: "Schema på", starts: "STARTAR", ready: "KLAR KL", readyonce: "KLAR KL (ENGÅNG)",
-    cancel: "AVBRYT", next: "Nästa", learnedword: "inlärd", learn: "Lär in mina tider", off: "Av", pick: "Välj tid", lastheated: "SENAST VÄRMD", paused: "PAUSAD TILL", ev: "EL", fuel: "BRÄNSLE",
+    cancel: "AVBRYT", next: "Nästa", learnedword: "inlärd", learn: "Lär in mina tider", off: "Av", nodays: "Inga dagar valda", pick: "Välj tid", lastheated: "SENAST VÄRMD", paused: "PAUSAD TILL", ev: "EL", fuel: "BRÄNSLE",
     evrange: "ELRÄCKVIDD", fuelrange: "BENSINRÄCKVIDD", odo: "MÄTARE", v12: "12 V", none: "INGA",
     failed: "Det gick inte: ", never: "ALDRIG", lastev: "EL · SENAST",
   },
@@ -40,7 +40,7 @@ const TEXT = {
     left: "MIN JÄLJELLÄ", runfor: "KESTO", min: "min", car: "AUTO", live: "REAALIAIKA", justnow: "JUURI NYT",
     ago: "SITTEN", h: "T", m: "MIN", ask: "KYSY AUTON LÄMPÖTILAA", asked: "KYSYTTY · ODOTA HETKI",
     schedule: "Aikataulu päällä", starts: "KÄYNNISTYY", ready: "VALMIS KLO", readyonce: "VALMIS KLO (KERRAN)",
-    cancel: "PERUUTA", next: "Seuraava", learnedword: "opittu", learn: "Opi aikani", off: "Pois", pick: "Valitse aika", lastheated: "VIIMEKSI LÄMMITETTY", paused: "TAUOLLA ASTI", ev: "SÄHKÖ", fuel: "POLTTOAINE",
+    cancel: "PERUUTA", next: "Seuraava", learnedword: "opittu", learn: "Opi aikani", off: "Pois", nodays: "Ei päiviä valittu", pick: "Valitse aika", lastheated: "VIIMEKSI LÄMMITETTY", paused: "TAUOLLA ASTI", ev: "SÄHKÖ", fuel: "POLTTOAINE",
     evrange: "SÄHKÖKANTAMA", fuelrange: "BENSIINIKANTAMA", odo: "MATKAMITTARI", v12: "12 V", none: "EI MITÄÄN",
     failed: "Se ei onnistunut: ", never: "EI KOSKAAN", lastev: "SÄHKÖ · VIIMEKSI",
   },
@@ -286,7 +286,7 @@ class EberspaecherHud extends HTMLElement {
       parts.push(j - i >= 2 ? `${name(idx[i])}–${name(idx[j])}` : idx.slice(i, j + 1).map(name).join(", "));
       i = j + 1;
     }
-    return parts.join(", ") || this._t.off;
+    return parts.join(", ") || this._t.nodays;
   }
   // "Sat 7 Nov", or "Today" / "Tomorrow" in words, for a date and optional time.
   _when(date) {
@@ -509,7 +509,7 @@ class EberspaecherHud extends HTMLElement {
       const tv = e => (e && /^\d\d:\d\d/.test(e.state)) ? e.state.slice(0, 5) : "";
       this.$("rb").value = tv(rb); this.$("alt").value = tv(alt);
       this.$("altOn").classList.toggle("on", !!altOn && altOn.state === "on");
-      this.$("alt").parentNode.classList.toggle("off", !!altOn && altOn.state !== "on");
+      this.$("alt").parentNode.classList.toggle("off", (!!altOn && altOn.state !== "on") || (!!alt && !(alt.attributes.weekdays || []).length));
       this.$("once").value = hasOnce ? this._local(once.state) : "";
       this.$("pickwrap").classList.toggle("empty", !this.$("once").value);
     }
